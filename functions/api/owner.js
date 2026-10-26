@@ -71,8 +71,7 @@ export async function onRequest(context) {
             }
 
             const player = await env.DB.prepare(
-                `SELECT username, cash, punches, rebirths, rebirths,
-                        rebirths, game_state
+                `SELECT username, cash, punches, rebirths, game_state
                  FROM leaderboard
                  WHERE username=?`
             ).bind(targetUsername).first();
