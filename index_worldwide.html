@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Boxing Punching Bag Clicker</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Teko:wght@600;700&family=Inter:wght@400;600;800&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #080c14;
+            color: #ffffff;
+            user-select: none;
+            -webkit-user-select: none;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+
+        .font-arcade {
+            font-family: 'Teko', sans-serif;
+            letter-spacing: 1px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #2563eb;
+            border-radius: 4px;
+        }
+
+        .pseudo-fullscreen {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            z-index: 99999 !important;
+            border-radius: 0 !important;
+        }
+
+        canvas {
+            touch-action: none;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col justify-between overflow-hidden bg-slate-950">
+
+    <div id="game-app" class="w-full h-full flex flex-col md:flex-row relative overflow-hidden bg-slate-950">
+        
+        <!-- MOBILE TOP BAR -->
+        <header class="w-full bg-slate-900/90 border-b border-slate-800 p-3 flex justify-between items-center z-20 md:hidden">
+            <div>
+                <span class="text-xs text-slate-400 block uppercase font-semibold tracking-wider">Cash</span>
+                <span id="cash-display-mobile" class="font-arcade text-3xl font-bold text-yellow-400 leading-none">$0</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <button id="btn-leaderboard-mobile" class="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 text-yellow-400 flex items-center justify-center"><i class="fas fa-trophy"></i></button>
+                <button id="btn-settings-mobile" class="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 hover:text-white flex items-center justify-center">
+                    <i class="fas fa-gear"></i>
+                </button>
+                <button id="btn-fullscreen-mobile" class="w-10 h-10 rounded-xl bg-blue-600 border border-blue-500 text-white flex items-center justify-center">
+                    <i class="fas fa-expand"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- MAIN GAME CANVAS AREA -->
+        <main class="relative flex-1 h-full flex flex-col items-center justify-center bg-radial from-slate-900 via-slate-950 to-black overflow-hidden">
+            
+            <!-- DESKTOP TOP HUD (CLEAN) -->
+            <div class="absolute top-4 left-4 right-4 justify-between items-center z-20 hidden md:flex">
+                <!-- Stats Box -->
+                <div class="bg-slate-900/90 backdrop-blur-md border border-slate-800 px-5 py-2.5 rounded-2xl flex items-center gap-5 shadow-xl">
+                    <div class="flex flex-col">
+                        <span class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Cash</span>
+                        <span id="cash-display-desktop" class="font-arcade text-4xl font-bold text-yellow-400 leading-none">$0</span>
+                    </div>
+                    <div class="h-8 w-px bg-slate-800"></div>
+                    <div class="flex flex-col">
+                        <span class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Per Punch</span>
+                        <span id="cpc-display-desktop" class="font-arcade text-2xl text-emerald-400 leading-none">+$1</span>
+                    </div>
+                    <div class="h-8 w-px bg-slate-800"></div>
+                    <div class="flex flex-col">
+                        <span class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Auto / Sec</span>
+                        <span id="cps-display-desktop" class="font-arcade text-2xl text-cyan-400 leading-none">0/s</span>
+                    </div>
+                </div>
+
+                <!-- HUD Action Buttons -->
+                <div class="flex items-center gap-3">
+                    <button id="btn-leaderboard-desktop" class="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 text-yellow-400 flex items-center justify-center"><i class="fas fa-trophy"></i></button>
+                    <button id="btn-settings-desktop" class="w-11 h-11 rounded-2xl bg-slate-900/90 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white flex items-center justify-center transition shadow-lg">
+                        <i class="fas fa-gear text-lg"></i>
+                    </button>
+                    <button id="btn-fullscreen-desktop" class="w-11 h-11 rounded-2xl bg-blue-600 hover:bg-blue-500 border border-blue-400 text-white flex items-center justify-center transition shadow-lg shadow-blue-500/20">
+                        <i class="fas fa-expand text-lg"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- MOBILE SUB STATS -->
+            <div class="absolute top-2 left-3 right-3 flex justify-between items-center text-xs text-slate-400 z-10 md:hidden">
+                <div>Per Punch: <span id="cpc-display-mobile" class="text-emerald-400 font-bold">+$1</span></div>
+                <div>Auto/sec: <span id="cps-display-mobile" class="text-cyan-400 font-bold">0</span></div>
+            </div>
+
+            <!-- FRENZY HUD -->
+            <div id="frenzy-container" class="absolute top-12 md:top-20 w-64 h-3 bg-slate-800 rounded-full overflow-hidden border border-slate-700 z-10 hidden opacity-0 transition-opacity duration-300">
+                <div id="frenzy-bar" class="h-full bg-gradient-to-r from-yellow-500 via-red-500 to-orange-500 w-0 transition-all duration-75"></div>
+            </div>
+            <div id="frenzy-banner" class="absolute top-16 md:top-24 font-arcade text-3xl md:text-4xl text-yellow-400 font-black tracking-widest animate-bounce z-10 hidden drop-shadow-[0_0_10px_rgba(234,179,8,0.8)]">
+                🔥 FRENZY 2X MULTIPLIER! 🔥
+            </div>
+
+            <!-- CANVAS GAME AREA -->
+            <canvas id="game-canvas" class="w-full h-full cursor-pointer"></canvas>
+
+            <!-- HINT -->
+            <div class="absolute bottom-3 pointer-events-none text-slate-500 text-xs tracking-wider uppercase flex items-center gap-2">
+                <i class="fas fa-hand-pointer animate-pulse"></i> Tap Punching Bag to Attack
+            </div>
+        </main>
+
+        <!-- RIGHT SHOP PANEL -->
+        <aside class="w-full md:w-96 h-1/2 md:h-full bg-slate-900/95 border-t md:border-t-0 md:border-l border-slate-800 flex flex-col z-20">
+            <!-- SHOP NAVIGATION -->
+            <div class="flex bg-slate-950 p-1.5 border-b border-slate-800 gap-1">
+                <button id="tab-power" class="flex-1 py-2 text-center font-arcade text-base tracking-wider font-bold rounded-xl bg-blue-600 text-white transition flex items-center justify-center gap-1.5 shadow-lg shadow-blue-600/30">
+                    <i class="fas fa-hand-fist"></i> POWER
+                </button>
+                <button id="tab-auto" class="flex-1 py-2 text-center font-arcade text-base tracking-wider font-bold rounded-xl text-slate-400 hover:text-white transition flex items-center justify-center gap-1.5">
+                    <i class="fas fa-robot"></i> AUTO
+                </button>
+                <button id="tab-boost" class="flex-1 py-2 text-center font-arcade text-base tracking-wider font-bold rounded-xl text-slate-400 hover:text-white transition flex items-center justify-center gap-1.5">
+                    <i class="fas fa-bolt"></i> BOOST
+                </button>
+                <button id="tab-bags" class="flex-1 py-2 text-center font-arcade text-base tracking-wider font-bold rounded-xl text-slate-400 hover:text-white transition flex items-center justify-center gap-1.5">
+                    <i class="fas fa-shield-halved"></i> SKINS
+                </button>
+            </div>
+
+            <!-- DYNAMIC SHOP ITEMS -->
+            <div class="flex-1 overflow-y-auto p-3 space-y-2.5 custom-scrollbar" id="shop-container">
+            </div>
+        </aside>
+
+    </div>
+
+
+    <!-- USERNAME MODAL -->
+    <div id="username-modal" class="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-700 w-full max-w-md rounded-2xl p-6 shadow-2xl space-y-5">
+            <h3 class="font-arcade text-3xl text-white font-bold">CHOOSE USERNAME</h3>
+            <p class="text-sm text-slate-400">Your username will be used on the leaderboard.</p>
+            <input id="username-input" maxlength="16" autocomplete="off" class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-700 text-white outline-none focus:border-blue-500" placeholder="Enter username">
+            <button id="btn-confirm-username" class="w-full px-4 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold">CONFIRM</button>
+            <p id="username-error" class="text-xs text-red-400 hidden"></p>
+        </div>
+    </div>
+
+    <!-- LEADERBOARD MODAL -->
+    <div id="leaderboard-modal" class="fixed inset-0 bg-black/90 z-[90] flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-2xl p-5 shadow-2xl">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 class="font-arcade text-3xl text-yellow-400 font-bold"><i class="fas fa-trophy mr-2"></i>LEADERBOARD</h3>
+                <button id="btn-close-leaderboard" class="text-slate-400 hover:text-white text-xl"><i class="fas fa-xmark"></i></button>
+            </div>
+            <div class="grid grid-cols-12 gap-2 text-[10px] uppercase tracking-wider text-slate-500 font-bold px-3 py-3">
+                <div class="col-span-1">#</div><div class="col-span-5">Player</div><div class="col-span-3 text-right">Cash</div><div class="col-span-3 text-right">Punches</div>
+            </div>
+            <div id="leaderboard-list" class="space-y-2 max-h-[55vh] overflow-y-auto custom-scrollbar"></div>
+            <p id="leaderboard-status" class="text-center text-xs text-slate-500 mt-4"></p>
+        </div>
+    </div>
+
+    <!-- RESET CONFIRMATION -->
+    <div id="reset-confirm-modal" class="fixed inset-0 bg-black/90 z-[110] flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-red-900/60 w-full max-w-sm rounded-2xl p-6 shadow-2xl space-y-5">
+            <h3 class="font-arcade text-2xl text-red-400 font-bold">RESET PROGRESS?</h3>
+            <p class="text-sm text-slate-300">This will permanently erase this game's progress on this device.</p>
+            <div class="flex gap-3">
+                <button id="btn-cancel-reset" class="flex-1 px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold">CANCEL</button>
+                <button id="btn-confirm-reset" class="flex-1 px-4 py-3 rounded-xl bg-red-700 hover:bg-red-600 text-white font-bold">RESET</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SETTINGS & ABOUT MODAL -->
+    <div id="settings-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-6 relative shadow-2xl space-y-6">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 class="font-arcade text-3xl text-slate-100 font-bold flex items-center gap-2">
+                    <i class="fas fa-gear text-blue-500"></i> SETTINGS
+                </h3>
+                <button id="btn-close-settings" class="text-slate-400 hover:text-white text-xl">
+                    <i class="fas fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Performance Settings -->
+            <div class="space-y-3">
+                <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400">Performance & Graphics</h4>
+                <div class="flex justify-between items-center bg-slate-950 p-3 rounded-xl border border-slate-800">
+                    <div>
+                        <div class="font-semibold text-sm">Graphics FX Mode</div>
+                        <div class="text-xs text-slate-500">Low mode optimizes speed for low-end devices</div>
+                    </div>
+                    <button id="btn-toggle-fx" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-600 text-white">
+                        HIGH FX
+                    </button>
+                </div>
+
+                <div class="flex justify-between items-center bg-slate-950 p-3 rounded-xl border border-slate-800">
+                    <div>
+                        <div class="font-semibold text-sm">Audio & Sound FX</div>
+                        <div class="text-xs text-slate-500">Enable synthesized punch and chime sounds</div>
+                    </div>
+                    <button id="btn-toggle-sound" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 text-white">
+                        ENABLED
+                    </button>
+                </div>
+            </div>
+
+            <!-- About Section -->
+            <div class="space-y-3 border-t border-slate-800 pt-4">
+                <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400">About Game</h4>
+                <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 text-center space-y-2">
+                    <div class="font-arcade text-2xl text-blue-400 font-bold">2D Boxing Punching Bag Clicker</div>
+                    <div class="text-xs text-slate-400">Designed with dynamic spring physics, object-pooling performance engine, and high difficulty curve.</div>
+                    <div class="text-xs text-slate-300 font-bold pt-1 border-t border-slate-900">
+                        Creator: <span class="text-yellow-400">Syed Muhammad</span>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- Player Profile -->
+            <div class="space-y-3 border-t border-slate-800 pt-4">
+                <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400">Player</h4>
+                <div class="flex justify-between items-center bg-slate-950 p-3 rounded-xl border border-slate-800">
+                    <div><div class="font-semibold text-sm">Username</div><div id="settings-username" class="text-xs text-slate-500">Not set</div></div>
+                    <button id="btn-change-username" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-white">CHANGE</button>
+                </div>
+                <button id="btn-settings-leaderboard" class="w-full px-4 py-2 rounded-xl bg-yellow-600 hover:bg-yellow-500 text-white text-xs font-bold"><i class="fas fa-trophy mr-1"></i> Open Leaderboard</button>
+            </div>
+
+            <!-- Action Controls -->
+            <div class="flex justify-between items-center pt-2">
+                <button id="btn-reset-data" class="px-4 py-2 rounded-xl bg-red-950/40 hover:bg-red-900/60 border border-red-800/60 text-red-400 text-xs font-bold transition">
+                    <i class="fas fa-trash-can mr-1"></i> Reset Game Progress
+                </button>
+                <button id="btn-save-close" class="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition">
+                    Done
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT ENGINE -->
+    <script>
+        /**
+         * Boxing Clicker Engine v2.0
+         * Single-file HTML execution, optimized for low-end devices and reactive state rendering.
+         */
+
+        const gameState = {
+            cash: 0,
+            totalPunches: 0,
+            cpcMultiplier: 1,
+            cpsMultiplier: 0,
+            frenzyActive: false,
+            frenzyMeter: 0,
+            lowGraphics: false,
+            soundEnabled: true,
+            activeBagSkin: 'canvas',
+            upgrades: {
+                // Tap Power (CPC)
+                paddedGloves: { count: 0, basePrice: 15, growth: 1.25, cpc: 1, name: "Padded Gloves", desc: "+$1 per punch", icon: "fa-hand" },
+                gelWraps: { count: 0, basePrice: 120, growth: 1.28, cpc: 6, name: "Gel Hand Wraps", desc: "+$6 per punch", icon: "fa-scroll" },
+                heavyGloves: { count: 0, basePrice: 900, growth: 1.30, cpc: 35, name: "Heavyweight Gloves", desc: "+$35 per punch", icon: "fa-mitten" },
+                brassKnuckles: { count: 0, basePrice: 5500, growth: 1.32, cpc: 180, name: "Brass Knuckles", desc: "+$180 per punch", icon: "fa-skull" },
+                cyberFists: { count: 0, basePrice: 35000, growth: 1.35, cpc: 950, name: "Cybernetic Fists", desc: "+$950 per punch", icon: "fa-robot" },
+                dragonGauntlets: { count: 0, basePrice: 250000, growth: 1.38, cpc: 5200, name: "Dragon Gauntlets", desc: "+$5,200 per punch", icon: "fa-dragon" },
+                titanStrike: { count: 0, basePrice: 1800000, growth: 1.40, cpc: 32000, name: "Titan Strike", desc: "+$32,000 per punch", icon: "fa-bolt" },
+
+                // Auto Punchers (CPS)
+                rookieMate: { count: 0, basePrice: 50, growth: 1.26, cps: 2, name: "Rookie Gym Mate", desc: "+2 auto punches/sec", icon: "fa-user" },
+                amateurBoxer: { count: 0, basePrice: 450, growth: 1.28, cps: 15, name: "Amateur Boxer", desc: "+15 auto punches/sec", icon: "fa-user-ninja" },
+                proTrainer: { count: 0, basePrice: 3200, growth: 1.30, cps: 90, name: "Pro Trainer", desc: "+90 auto punches/sec", icon: "fa-dumbbell" },
+                cyberPuncher: { count: 0, basePrice: 22000, growth: 1.33, cps: 480, name: "Cyber Punching Bot", desc: "+480 auto punches/sec", icon: "fa-microchip" },
+                aiSparringRing: { count: 0, basePrice: 160000, growth: 1.35, cps: 2900, name: "AI Sparring Ring", desc: "+2,900 auto punches/sec", icon: "fa-brain" },
+                mechPuncher: { count: 0, basePrice: 1100000, growth: 1.38, cps: 18500, name: "Mech Puncher", desc: "+18,500 auto punches/sec", icon: "fa-gears" },
+                galacticChamp: { count: 0, basePrice: 8500000, growth: 1.40, cps: 120000, name: "Galactic Champ", desc: "+120,000 auto punches/sec", icon: "fa-trophy" },
+
+                // Passive Boosters
+                critMultiplier: { count: 0, basePrice: 500, growth: 1.6, boost: 0.1, name: "Critical Strike Engine", desc: "+10% Critical punch chance", icon: "fa-crosshair" },
+                frenzyBooster: { count: 0, basePrice: 2500, growth: 1.7, boost: 0.15, name: "Frenzy Charge Core", desc: "Builds Frenzy 15% faster", icon: "fa-fire" }
+            },
+            bags: {
+                canvas: { name: "Canvas Training Bag", price: 0, multiplier: 1, color: "#64748b", owned: true, accent: "#475569", text: "#94a3b8" },
+                leather: { name: "Pro Leather Bag", price: 2500, multiplier: 1.8, color: "#8b4513", owned: false, accent: "#5c2e0b", text: "#d97706" },
+                cyber: { name: "Cyber Neon Bag", price: 35000, multiplier: 3.5, color: "#00f0ff", owned: false, accent: "#0080ff", text: "#38bdf8" },
+                gold: { name: "Golden Champion Bag", price: 250000, multiplier: 7.0, color: "#eab308", owned: false, accent: "#ca8a04", text: "#fde047" },
+                diamond: { name: "Diamond Heavy Bag", price: 2000000, multiplier: 15.0, color: "#38bdf8", owned: false, accent: "#0284c7", text: "#bae6fd" },
+                obsidian: { name: "Obsidian Titan Bag", price: 15000000, multiplier: 40.0, color: "#1e1b4b", owned: false, accent: "#312e81", text: "#a5b4fc" }
+            }
+        };
+
+        // DOM Element Cache
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const gameApp = document.getElementById('game-app');
+        const shopContainer = document.getElementById('shop-container');
+        
+        const cashDisplayMobile = document.getElementById('cash-display-mobile');
+        const cashDisplayDesktop = document.getElementById('cash-display-desktop');
+        const cpcDisplayMobile = document.getElementById('cpc-display-mobile');
+        const cpcDisplayDesktop = document.getElementById('cpc-display-desktop');
+        const cpsDisplayMobile = document.getElementById('cps-display-mobile');
+        const cpsDisplayDesktop = document.getElementById('cps-display-desktop');
+
+        const settingsModal = document.getElementById('settings-modal');
+        const btnToggleFx = document.getElementById('btn-toggle-fx');
+        const btnToggleSound = document.getElementById('btn-toggle-sound');
+
+        let currentTab = 'power';
+        let audioCtx = null;
+
+        // Sound Synthesizer
+        function initAudio() {
+            if (!audioCtx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (AudioContext) audioCtx = new AudioContext();
+            }
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function playSound(type) {
+            if (!gameState.soundEnabled) return;
+            initAudio();
+            if (!audioCtx) return;
+
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            if (type === 'punch') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(130, now);
+                osc.frequency.exponentialRampToValueAtTime(30, now + 0.1);
+                gain.gain.setValueAtTime(0.7, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                osc.start(now);
+                osc.stop(now + 0.1);
+            } else if (type === 'upgrade') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(520, now);
+                osc.frequency.exponentialRampToValueAtTime(1040, now + 0.15);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                osc.start(now);
+                osc.stop(now + 0.15);
+            }
+        }
+
+        // Fullscreen Handling
+        function toggleFullscreen() {
+            const isFull = document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement;
+            if (!isFull) {
+                const req = gameApp.requestFullscreen || gameApp.webkitRequestFullscreen || gameApp.msRequestFullscreen;
+                if (req) {
+                    req.call(gameApp).catch(() => {
+                        gameApp.classList.toggle('pseudo-fullscreen');
+                        resizeCanvas();
+                    });
+                } else {
+                    gameApp.classList.toggle('pseudo-fullscreen');
+                    resizeCanvas();
+                }
+            } else {
+                const exit = document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen;
+                if (exit) {
+                    exit.call(document).catch(() => gameApp.classList.remove('pseudo-fullscreen'));
+                } else {
+                    gameApp.classList.remove('pseudo-fullscreen');
+                }
+            }
+            setTimeout(resizeCanvas, 100);
+        }
+
+        document.getElementById('btn-fullscreen-desktop').addEventListener('click', toggleFullscreen);
+        document.getElementById('btn-fullscreen-mobile').addEventListener('click', toggleFullscreen);
+
+        // Settings Modal Handlers
+        function openSettings() { settingsModal.classList.remove('hidden'); }
+        function closeSettings() { settingsModal.classList.add('hidden'); }
+
+        document.getElementById('btn-settings-desktop').addEventListener('click', openSettings);
+        document.getElementById('btn-settings-mobile').addEventListener('click', openSettings);
+        document.getElementById('btn-close-settings').addEventListener('click', closeSettings);
+        document.getElementById('btn-save-close').addEventListener('click', closeSettings);
+
+        btnToggleFx.addEventListener('click', () => {
+            gameState.lowGraphics = !gameState.lowGraphics;
+            btnToggleFx.textContent = gameState.lowGraphics ? 'LOW (FAST)' : 'HIGH FX';
+            btnToggleFx.className = `px-3 py-1.5 rounded-lg text-xs font-bold ${gameState.lowGraphics ? 'bg-amber-600' : 'bg-blue-600'} text-white`;
+        });
+
+        btnToggleSound.addEventListener('click', () => {
+            gameState.soundEnabled = !gameState.soundEnabled;
+            btnToggleSound.textContent = gameState.soundEnabled ? 'ENABLED' : 'MUTED';
+            btnToggleSound.className = `px-3 py-1.5 rounded-lg text-xs font-bold ${gameState.soundEnabled ? 'bg-emerald-600' : 'bg-slate-700'} text-white`;
+        });
+
+        document.getElementById('btn-reset-data').addEventListener('click', () => {
+            document.getElementById('reset-confirm-modal').classList.remove('hidden');
+        });
+        document.getElementById('btn-cancel-reset').addEventListener('click', () => {
+            document.getElementById('reset-confirm-modal').classList.add('hidden');
+        });
+        document.getElementById('btn-confirm-reset').addEventListener('click', () => {
+            localStorage.removeItem('boxing_clicker_save_v2');
+            document.getElementById('reset-confirm-modal').classList.add('hidden');
+            location.reload();
+        });
+
+        // Object Pool for Particles and Floating Texts
+        class ObjectPool {
+            constructor(createFn, maxSize) {
+                this.pool = [];
+                this.active = [];
+                for (let i = 0; i < maxSize; i++) this.pool.push(createFn());
+            }
+
+            get() {
+                if (this.pool.length > 0) {
+                    const obj = this.pool.pop();
+                    this.active.push(obj);
+                    return obj;
+                }
+                return null;
+            }
+
+            recycle(obj) {
+                const idx = this.active.indexOf(obj);
+                if (idx !== -1) {
+                    this.active.splice(idx, 1);
+                    this.pool.push(obj);
+                }
+            }
+        }
+
+        const floatingTextPool = new ObjectPool(() => ({
+            x: 0, y: 0, text: '', alpha: 1, vx: 0, vy: 0, color: '#fff'
+        }), 30);
+
+        function spawnFloatingText(x, y, text, color = '#FBBF24') {
+            const item = floatingTextPool.get();
+            if (!item) return;
+            item.x = x + (Math.random() * 20 - 10);
+            item.y = y;
+            item.text = text;
+            item.alpha = 1;
+            item.vx = (Math.random() - 0.5) * 2;
+            item.vy = -3 - Math.random() * 2;
+            item.color = color;
+        }
+
+        const sparkPool = new ObjectPool(() => ({
+            x: 0, y: 0, vx: 0, vy: 0, size: 0, alpha: 1, color: '#FFD700'
+        }), 40);
+
+        function spawnSparks(x, y, count = 5) {
+            const spawnCount = gameState.lowGraphics ? Math.min(2, count) : count;
+            for (let i = 0; i < spawnCount; i++) {
+                const p = sparkPool.get();
+                if (!p) break;
+                p.x = x;
+                p.y = y;
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 2 + Math.random() * 5;
+                p.vx = Math.cos(angle) * speed;
+                p.vy = Math.sin(angle) * speed;
+                p.size = 2 + Math.random() * 3;
+                p.alpha = 1;
+                p.color = Math.random() > 0.5 ? '#FFD700' : '#EF4444';
+            }
+        }
+
+        // Punching Bag Canvas Setup
+        const bag = {
+            x: 0, y: 0,
+            baseWidth: 90, baseHeight: 200,
+            angle: 0, angularVel: 0,
+            squishX: 1, squishY: 1,
+            pivotX: 0, pivotY: 0
+        };
+
+        const gloves = {
+            left: { x: -100, y: 0, targetX: -100, targetY: 0, active: false, opacity: 0 },
+            right: { x: 100, y: 0, targetX: 100, targetY: 0, active: false, opacity: 0 }
+        };
+
+        function resizeCanvas() {
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+            bag.pivotX = canvas.width / 2;
+            bag.pivotY = canvas.height * 0.18;
+            bag.x = bag.pivotX;
+            bag.y = bag.pivotY + 120;
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        // Stats Calculation Engine
+        function calculateStats() {
+            let baseCpc = 1;
+            let baseCps = 0;
+
+            for (const k in gameState.upgrades) {
+                const item = gameState.upgrades[k];
+                if (item.cpc) baseCpc += item.cpc * item.count;
+                if (item.cps) baseCps += item.cps * item.count;
+            }
+
+            const skinMult = gameState.bags[gameState.activeBagSkin].multiplier;
+            const frenzyMult = gameState.frenzyActive ? 2 : 1;
+
+            gameState.cpcMultiplier = baseCpc * skinMult * frenzyMult;
+            gameState.cpsMultiplier = baseCps * skinMult * frenzyMult;
+
+            // Render stats on HUD
+            const formattedCash = `$${Math.floor(gameState.cash).toLocaleString()}`;
+            cashDisplayMobile.textContent = formattedCash;
+            cashDisplayDesktop.textContent = formattedCash;
+
+            cpcDisplayMobile.textContent = `+$${Math.floor(gameState.cpcMultiplier).toLocaleString()}`;
+            cpcDisplayDesktop.textContent = `+$${Math.floor(gameState.cpcMultiplier).toLocaleString()}`;
+
+            cpsDisplayMobile.textContent = `${Math.floor(gameState.cpsMultiplier).toLocaleString()}/s`;
+            cpsDisplayDesktop.textContent = `${Math.floor(gameState.cpsMultiplier).toLocaleString()}/s`;
+
+            // CRITICAL FIX: Instantly refresh shop UI buttons on every state update
+            updateShopItemStates();
+        }
+
+        function triggerHit(hitX, hitY, isAuto = false) {
+            initAudio();
+            playSound('punch');
+
+            // Crit Calculation
+            const critLevel = gameState.upgrades.critMultiplier.count;
+            const isCrit = Math.random() < (critLevel * 0.05);
+            const critMult = isCrit ? 2.5 : 1;
+
+            const earnings = gameState.cpcMultiplier * critMult;
+            gameState.cash += earnings;
+            gameState.totalPunches++;
+
+            // Visual physics bounce
+            const dir = (hitX || bag.x) < bag.x ? 1 : -1;
+            bag.angularVel += dir * (isAuto ? 0.03 : 0.07);
+            bag.squishX = 1.25;
+            bag.squishY = 0.82;
+
+            spawnFloatingText(hitX || bag.x, hitY || bag.y, `+$${Math.floor(earnings)}`, isCrit ? '#EF4444' : '#FBBF24');
+            spawnSparks(hitX || bag.x, hitY || bag.y, isAuto ? 2 : 6);
+
+            // Glove punch triggers
+            if (dir > 0) {
+                gloves.left.active = true;
+                gloves.left.x = bag.x - 110;
+                gloves.left.y = bag.y;
+                gloves.left.targetX = bag.x - 20;
+                gloves.left.targetY = bag.y;
+                gloves.left.opacity = 1;
+            } else {
+                gloves.right.active = true;
+                gloves.right.x = bag.x + 110;
+                gloves.right.y = bag.y;
+                gloves.right.targetX = bag.x + 20;
+                gloves.right.targetY = bag.y;
+                gloves.right.opacity = 1;
+            }
+
+            // Frenzy Meter
+            if (!gameState.frenzyActive) {
+                const frenzyRate = 3 + (gameState.upgrades.frenzyBooster.count * 0.5);
+                gameState.frenzyMeter += frenzyRate;
+                if (gameState.frenzyMeter >= 100) activateFrenzy();
+            }
+
+            calculateStats();
+            saveGame();
+        }
+
+        function activateFrenzy() {
+            gameState.frenzyActive = true;
+            gameState.frenzyMeter = 100;
+            document.getElementById('frenzy-container').classList.remove('hidden', 'opacity-0');
+            document.getElementById('frenzy-banner').classList.remove('hidden');
+
+            const timer = setInterval(() => {
+                gameState.frenzyMeter -= 4;
+                document.getElementById('frenzy-bar').style.width = `${gameState.frenzyMeter}%`;
+                if (gameState.frenzyMeter <= 0) {
+                    clearInterval(timer);
+                    gameState.frenzyActive = false;
+                    document.getElementById('frenzy-container').classList.add('hidden', 'opacity-0');
+                    document.getElementById('frenzy-banner').classList.add('hidden');
+                    calculateStats();
+                }
+            }, 200);
+        }
+
+        canvas.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.clientX - rect.left;
+            const clientY = e.clientY - rect.top;
+
+            const dx = clientX - bag.x;
+            const dy = clientY - bag.y;
+            if (Math.abs(dx) < 85 && Math.abs(dy) < 130) {
+                triggerHit(clientX, clientY, false);
+            }
+        });
+
+        // Game Loop
+        let lastTime = performance.now();
+        let autoPunchAccumulator = 0;
+
+        function updateAndRender(now) {
+            const dt = Math.min((now - lastTime) / 1000, 0.1);
+            lastTime = now;
+
+            // Auto Punch Accumulator
+            if (gameState.cpsMultiplier > 0) {
+                autoPunchAccumulator += dt * gameState.cpsMultiplier;
+                if (autoPunchAccumulator >= 1) {
+                    const hits = Math.floor(autoPunchAccumulator);
+                    autoPunchAccumulator -= hits;
+                    const visualHits = Math.min(hits, gameState.lowGraphics ? 2 : 4);
+                    for (let i = 0; i < visualHits; i++) {
+                        const offsetX = (Math.random() - 0.5) * 40;
+                        const offsetY = (Math.random() - 0.5) * 80;
+                        triggerHit(bag.x + offsetX, bag.y + offsetY, true);
+                    }
+                }
+            }
+
+            // Physics Update
+            const damping = 0.94;
+            const k = 0.08;
+            bag.angularVel += -k * bag.angle;
+            bag.angularVel *= damping;
+            bag.angle += bag.angularVel;
+
+            bag.squishX += (1 - bag.squishX) * 0.15;
+            bag.squishY += (1 - bag.squishY) * 0.15;
+
+            // Canvas Render
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Chain
+            ctx.strokeStyle = '#475569';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(bag.pivotX, 0);
+            ctx.lineTo(bag.pivotX, bag.pivotY);
+            ctx.stroke();
+
+            // Swivel Mount
+            ctx.fillStyle = '#64748b';
+            ctx.fillRect(bag.pivotX - 12, bag.pivotY - 6, 24, 12);
+
+            // Punching Bag (DYNAMIC SKIN COLORS & GRADIENTS)
+            ctx.save();
+            ctx.translate(bag.pivotX, bag.pivotY);
+            ctx.rotate(bag.angle);
+            ctx.scale(bag.squishX, bag.squishY);
+
+            const activeSkin = gameState.bags[gameState.activeBagSkin];
+            const renderW = bag.baseWidth;
+            const renderH = bag.baseHeight;
+
+            // Dynamic Gradient Body
+            const bagGrad = ctx.createLinearGradient(-renderW/2, 20, renderW/2, renderH);
+            bagGrad.addColorStop(0, activeSkin.color);
+            bagGrad.addColorStop(1, activeSkin.accent);
+
+            ctx.fillStyle = bagGrad;
+            ctx.beginPath();
+            ctx.roundRect(-renderW / 2, 20, renderW, renderH, 25);
+            ctx.fill();
+
+            // Accent Caps
+            ctx.fillStyle = activeSkin.accent;
+            ctx.beginPath();
+            ctx.roundRect(-renderW / 2, 20, renderW, 30, [25, 25, 0, 0]);
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.roundRect(-renderW / 2, 20 + renderH - 30, renderW, 30, [0, 0, 25, 25]);
+            ctx.fill();
+
+            // Straps
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(-renderW / 3, 0, 8, 25);
+            ctx.fillRect(renderW / 3 - 8, 0, 8, 25);
+
+            // Special Skin Neon Embellishments
+            if (gameState.activeBagSkin === 'cyber' || gameState.activeBagSkin === 'obsidian') {
+                ctx.strokeStyle = activeSkin.color;
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(-renderW / 2, renderH / 2);
+                ctx.lineTo(renderW / 2, renderH / 2);
+                ctx.stroke();
+            }
+
+            ctx.restore();
+
+            // Gloves Render
+            ['left', 'right'].forEach(side => {
+                const g = gloves[side];
+                if (g.active && g.opacity > 0.01) {
+                    g.x += (g.targetX - g.x) * 0.35;
+                    g.opacity -= dt * 3.5;
+
+                    ctx.save();
+                    ctx.globalAlpha = Math.max(0, g.opacity);
+                    ctx.fillStyle = '#ef4444';
+                    ctx.beginPath();
+                    ctx.arc(g.x, g.y, 22, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                } else {
+                    g.active = false;
+                }
+            });
+
+            // Particles Render
+            for (let i = sparkPool.active.length - 1; i >= 0; i--) {
+                const p = sparkPool.active[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.alpha -= dt * 2.5;
+                if (p.alpha <= 0) sparkPool.recycle(p);
+                else {
+                    ctx.save();
+                    ctx.globalAlpha = p.alpha;
+                    ctx.fillStyle = p.color;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
+            }
+
+            // Floating Text Render
+            for (let i = floatingTextPool.active.length - 1; i >= 0; i--) {
+                const ft = floatingTextPool.active[i];
+                ft.x += ft.vx;
+                ft.y += ft.vy;
+                ft.alpha -= dt * 1.5;
+                if (ft.alpha <= 0) floatingTextPool.recycle(ft);
+                else {
+                    ctx.save();
+                    ctx.globalAlpha = Math.max(0, ft.alpha);
+                    ctx.fillStyle = ft.color;
+                    ctx.font = 'bold 22px Teko, sans-serif';
+                    ctx.fillText(ft.text, ft.x, ft.y);
+                    ctx.restore();
+                }
+            }
+
+            requestAnimationFrame(updateAndRender);
+        }
+
+        // SHOP UI GENERATOR
+        function renderShop() {
+            shopContainer.innerHTML = '';
+
+            if (currentTab === 'power' || currentTab === 'auto' || currentTab === 'boost') {
+                for (const key in gameState.upgrades) {
+                    const item = gameState.upgrades[key];
+                    const isPower = currentTab === 'power' && item.cpc;
+                    const isAuto = currentTab === 'auto' && item.cps;
+                    const isBoost = currentTab === 'boost' && item.boost;
+
+                    if (!isPower && !isAuto && !isBoost) continue;
+
+                    const price = Math.floor(item.basePrice * Math.pow(item.growth, item.count));
+
+                    const card = document.createElement('div');
+                    card.id = `upgrade-card-${key}`;
+                    card.className = "p-3 rounded-xl border flex items-center justify-between transition bg-slate-900/80 border-slate-800";
+
+                    card.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <div class="w-11 h-11 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-center text-blue-400 text-lg flex-shrink-0">
+                                <i class="fas ${item.icon}"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-sm text-slate-100 flex items-center gap-1.5">
+                                    ${item.name} 
+                                    <span class="text-[10px] bg-blue-950 text-blue-400 border border-blue-800/60 px-1.5 py-0.5 rounded-md font-mono">x${item.count}</span>
+                                </h4>
+                                <p class="text-xs text-slate-400">${item.desc}</p>
+                            </div>
+                        </div>
+                        <button id="buy-btn-${key}" class="px-3 py-1.5 rounded-xl text-xs font-bold transition flex-shrink-0">
+                            $${formatNumber(price)}
+                        </button>
+                    `;
+
+                    card.querySelector(`#buy-btn-${key}`).addEventListener('click', () => buyUpgrade(key));
+                    shopContainer.appendChild(card);
+                }
+            } else if (currentTab === 'bags') {
+                for (const key in gameState.bags) {
+                    const bagItem = gameState.bags[key];
+
+                    const card = document.createElement('div');
+                    card.id = `bag-card-${key}`;
+                    card.className = "p-3 rounded-xl border flex items-center justify-between transition bg-slate-900/80 border-slate-800";
+
+                    card.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl border-2 border-slate-700 flex-shrink-0 shadow-inner" style="background-color: ${bagItem.color}"></div>
+                            <div>
+                                <h4 class="font-bold text-sm text-slate-100">${bagItem.name}</h4>
+                                <p class="text-xs font-semibold" style="color: ${bagItem.text}">${bagItem.multiplier}x Cash Multiplier</p>
+                            </div>
+                        </div>
+                        <button id="bag-btn-${key}" class="px-3 py-1.5 rounded-xl text-xs font-bold transition flex-shrink-0"></button>
+                    `;
+
+                    card.querySelector(`#bag-btn-${key}`).addEventListener('click', () => selectOrBuyBag(key));
+                    shopContainer.appendChild(card);
+                }
+            }
+
+            updateShopItemStates();
+        }
+
+        // REAL-TIME STATE REFRESHER (Fixes delayed button activation)
+        function updateShopItemStates() {
+            if (currentTab === 'power' || currentTab === 'auto' || currentTab === 'boost') {
+                for (const key in gameState.upgrades) {
+                    const item = gameState.upgrades[key];
+                    const price = Math.floor(item.basePrice * Math.pow(item.growth, item.count));
+                    const canAfford = gameState.cash >= price;
+
+                    const btn = document.getElementById(`buy-btn-${key}`);
+                    if (btn) {
+                        if (canAfford) {
+                            btn.className = "px-3 py-1.5 rounded-xl text-xs font-bold transition flex-shrink-0 bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20 cursor-pointer";
+                        } else {
+                            btn.className = "px-3 py-1.5 rounded-xl text-xs font-bold transition flex-shrink-0 bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-800";
+                        }
+                    }
+                }
+            } else if (currentTab === 'bags') {
+                for (const key in gameState.bags) {
+                    const bagItem = gameState.bags[key];
+                    const isOwned = bagItem.owned;
+                    const isActive = gameState.activeBagSkin === key;
+                    const canAfford = gameState.cash >= bagItem.price;
+
+                    const btn = document.getElementById(`bag-btn-${key}`);
+                    if (btn) {
+                        if (isActive) {
+                            btn.textContent = "EQUIPPED";
+                            btn.className = "px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-950/60 text-emerald-400 border border-emerald-800/60 cursor-default";
+                        } else if (isOwned) {
+                            btn.textContent = "EQUIP";
+                            btn.className = "px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 cursor-pointer";
+                        } else {
+                            btn.textContent = `$${formatNumber(bagItem.price)}`;
+                            if (canAfford) {
+                                btn.className = "px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white cursor-pointer shadow-lg shadow-amber-600/20";
+                            } else {
+                                btn.className = "px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-800";
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        function buyUpgrade(key) {
+            const item = gameState.upgrades[key];
+            const price = Math.floor(item.basePrice * Math.pow(item.growth, item.count));
+
+            if (gameState.cash >= price) {
+                gameState.cash -= price;
+                item.count++;
+                playSound('upgrade');
+                calculateStats();
+                saveGame();
+            }
+        }
+
+        function selectOrBuyBag(key) {
+            const bagItem = gameState.bags[key];
+            if (bagItem.owned) {
+                gameState.activeBagSkin = key;
+                calculateStats();
+                saveGame();
+            } else if (gameState.cash >= bagItem.price) {
+                gameState.cash -= bagItem.price;
+                bagItem.owned = true;
+                gameState.activeBagSkin = key;
+                playSound('upgrade');
+                calculateStats();
+                saveGame();
+            }
+        }
+
+        // Tab Switches
+        document.getElementById('tab-power').addEventListener('click', () => setTab('power'));
+        document.getElementById('tab-auto').addEventListener('click', () => setTab('auto'));
+        document.getElementById('tab-boost').addEventListener('click', () => setTab('boost'));
+        document.getElementById('tab-bags').addEventListener('click', () => setTab('bags'));
+
+        function setTab(tab) {
+            currentTab = tab;
+            const tabs = {
+                power: document.getElementById('tab-power'),
+                auto: document.getElementById('tab-auto'),
+                boost: document.getElementById('tab-boost'),
+                bags: document.getElementById('tab-bags')
+            };
+
+            for (const t in tabs) {
+                tabs[t].className = "flex-1 py-2 text-center font-arcade text-base tracking-wider font-bold rounded-xl text-slate-400 hover:text-white transition flex items-center justify-center gap-1.5";
+            }
+            tabs[tab].className = "flex-1 py-2 text-center font-arcade text-base tracking-wider font-bold rounded-xl bg-blue-600 text-white transition flex items-center justify-center gap-1.5 shadow-lg shadow-blue-600/30";
+
+            renderShop();
+        }
+
+        // Local Storage
+        function saveGame() {
+            try {
+                const data = {
+                    cash: gameState.cash,
+                    totalPunches: gameState.totalPunches,
+                    upgrades: gameState.upgrades,
+                    bags: gameState.bags,
+                    activeBagSkin: gameState.activeBagSkin
+                };
+                localStorage.setItem('boxing_clicker_save_v2', JSON.stringify(data));
+            } catch (e) {}
+        }
+
+        function loadGame() {
+            try {
+                const saved = localStorage.getItem('boxing_clicker_save_v2');
+                if (saved) {
+                    const data = JSON.parse(saved);
+                    gameState.cash = data.cash || 0;
+                    gameState.totalPunches = data.totalPunches || 0;
+                    if (data.activeBagSkin) gameState.activeBagSkin = data.activeBagSkin;
+
+                    if (data.upgrades) {
+                        for (const k in data.upgrades) {
+                            if (gameState.upgrades[k]) {
+                                gameState.upgrades[k].count = data.upgrades[k].count || 0;
+                            }
+                        }
+                    }
+
+                    if (data.bags) {
+                        for (const k in data.bags) {
+                            if (gameState.bags[k]) {
+                                gameState.bags[k].owned = data.bags[k].owned || false;
+                            }
+                        }
+                    }
+                }
+            } catch (e) {}
+        }
+
+        
+        // ===== PLAYER PROFILE + LEADERBOARD =====
+        const PROFILE_KEY = 'boxing_clicker_profile_v1';
+        const LEADERBOARD_KEY = 'boxing_clicker_local_leaderboard_v1';
+        const ONLINE_LEADERBOARD_API = '/api/leaderboard';
+
+        function formatNumber(value) {
+            const n = Number(value) || 0, a = Math.abs(n);
+            const units = [[1e15,'Q'],[1e12,'T'],[1e9,'B'],[1e6,'M'],[1e3,'K']];
+            for (const [v,s] of units) if (a >= v) {
+                const x = n / v;
+                const d = Math.abs(x) >= 100 ? 0 : Math.abs(x) >= 10 ? 1 : 2;
+                return x.toFixed(d).replace(/\.0+$|(\.\d*[1-9])0+$/,'$1') + s;
+            }
+            return Math.floor(n).toLocaleString();
+        }
+
+        function getProfile() {
+            try { return JSON.parse(localStorage.getItem(PROFILE_KEY) || 'null'); } catch(e) { return null; }
+        }
+        function saveProfile(username) {
+            const old = getProfile();
+            localStorage.setItem(PROFILE_KEY, JSON.stringify({
+                playerId: old?.playerId || ('p_' + Date.now() + '_' + Math.random().toString(36).slice(2)),
+                username
+            }));
+            updateSettingsUsername();
+        }
+        function updateSettingsUsername() {
+            const el = document.getElementById('settings-username');
+            if (el) el.textContent = getProfile()?.username || 'Not set';
+        }
+        function openUsernameModal() {
+            const modal = document.getElementById('username-modal');
+            document.getElementById('username-input').value = getProfile()?.username || '';
+            document.getElementById('username-error').classList.add('hidden');
+            modal.classList.remove('hidden');
+            setTimeout(() => document.getElementById('username-input').focus(), 50);
+        }
+        function confirmUsername() {
+            const input = document.getElementById('username-input'), error = document.getElementById('username-error');
+            const name = input.value.trim();
+            if (!/^[A-Za-z0-9 _-]{2,16}$/.test(name)) {
+                error.textContent = 'Use 2–16 letters, numbers, spaces, _ or - only.';
+                error.classList.remove('hidden'); return;
+            }
+            saveProfile(name);
+            document.getElementById('username-modal').classList.add('hidden');
+            updateLocalLeaderboard();
+        }
+        function getLocalLeaderboard() {
+            try { return JSON.parse(localStorage.getItem(LEADERBOARD_KEY) || '[]'); } catch(e) { return []; }
+        }
+        function updateLocalLeaderboard() {
+            const p = getProfile(); if (!p) return;
+            const rows = getLocalLeaderboard().filter(r => r.playerId !== p.playerId);
+            rows.push({playerId:p.playerId, username:p.username, cash:Math.floor(gameState.cash||0), totalPunches:Math.floor(gameState.totalPunches||0)});
+            rows.sort((a,b) => b.cash-a.cash || b.totalPunches-a.totalPunches);
+            localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(rows.slice(0,100)));
+        }
+
+        let onlineSyncTimer = null;
+        async function syncOnlineLeaderboard() {
+            if (!ONLINE_LEADERBOARD_API) return null;
+            const p = getProfile();
+            if (!p) return null;
+
+            try {
+                await fetch(ONLINE_LEADERBOARD_API, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        username: p.username,
+                        cash: Math.floor(gameState.cash || 0),
+                        punches: Math.floor(gameState.totalPunches || 0)
+                    })
+                });
+
+                const response = await fetch(ONLINE_LEADERBOARD_API);
+                const data = await response.json();
+                if (!data.success) return null;
+
+                return (data.players || []).map(r => ({
+                    username: r.username,
+                    cash: Number(r.cash) || 0,
+                    totalPunches: Number(r.punches) || 0
+                }));
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function scheduleOnlineSync() {
+            if (!ONLINE_LEADERBOARD_API) return;
+            clearTimeout(onlineSyncTimer);
+            onlineSyncTimer = setTimeout(() => syncOnlineLeaderboard(), 5000);
+        }
+        function escapeHtml(v) {
+            return String(v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        }
+        function renderLeaderboard(rows, online=false) {
+            const list = document.getElementById('leaderboard-list');
+            list.innerHTML = '';
+            if (!rows.length) list.innerHTML = '<div class="text-center text-slate-500 py-8">No leaderboard players yet.</div>';
+            rows.slice(0,100).forEach((r,i) => {
+                const d = document.createElement('div');
+                d.className = 'grid grid-cols-12 gap-2 items-center bg-slate-950 border border-slate-800 rounded-xl px-3 py-3';
+                d.innerHTML = `<div class="col-span-1 font-arcade text-lg ${i<3?'text-yellow-400':'text-slate-500'}">${i+1}</div><div class="col-span-5 font-bold text-sm text-white truncate">${escapeHtml(r.username||'Player')}</div><div class="col-span-3 text-right font-arcade text-yellow-400">${formatNumber(r.cash)}</div><div class="col-span-3 text-right font-arcade text-slate-300">${formatNumber(r.totalPunches)}</div>`;
+                list.appendChild(d);
+            });
+            document.getElementById('leaderboard-status').textContent = online ? 'Worldwide leaderboard' : 'Local preview — Cloudflare API will make this worldwide.';
+        }
+        async function openLeaderboard() {
+            updateLocalLeaderboard();
+            document.getElementById('leaderboard-modal').classList.remove('hidden');
+            renderLeaderboard(getLocalLeaderboard(), false);
+
+            if (ONLINE_LEADERBOARD_API) {
+                document.getElementById('leaderboard-status').textContent = 'Loading worldwide leaderboard...';
+                const onlineRows = await syncOnlineLeaderboard();
+                if (onlineRows) {
+                    renderLeaderboard(onlineRows, true);
+                } else {
+                    document.getElementById('leaderboard-status').textContent = 'Could not connect to worldwide leaderboard. Showing local scores.';
+                }
+            }
+        }
+        function ensureProfile() {
+            updateSettingsUsername();
+            if (!getProfile()) openUsernameModal();
+        }
+
+        // Compact number display without changing the game's calculations.
+        const _calculateStatsOriginal = calculateStats;
+        calculateStats = function() {
+            _calculateStatsOriginal();
+            cashDisplayMobile.textContent = '$' + formatNumber(Math.floor(gameState.cash));
+            cashDisplayDesktop.textContent = '$' + formatNumber(Math.floor(gameState.cash));
+            cpcDisplayMobile.textContent = '+$' + formatNumber(Math.floor(gameState.cpcMultiplier));
+            cpcDisplayDesktop.textContent = '+$' + formatNumber(Math.floor(gameState.cpcMultiplier));
+            cpsDisplayMobile.textContent = formatNumber(Math.floor(gameState.cpsMultiplier)) + '/s';
+            cpsDisplayDesktop.textContent = formatNumber(Math.floor(gameState.cpsMultiplier)) + '/s';
+        };
+
+        const _saveGameOriginal = saveGame;
+        saveGame = function() { _saveGameOriginal(); updateLocalLeaderboard(); scheduleOnlineSync(); };
+
+        document.getElementById('btn-confirm-username').addEventListener('click', confirmUsername);
+        document.getElementById('username-input').addEventListener('keydown', e => { if (e.key === 'Enter') confirmUsername(); });
+        document.getElementById('btn-change-username').addEventListener('click', openUsernameModal);
+        document.getElementById('btn-close-leaderboard').addEventListener('click', () => document.getElementById('leaderboard-modal').classList.add('hidden'));
+        document.getElementById('btn-settings-leaderboard').addEventListener('click', openLeaderboard);
+        document.getElementById('btn-leaderboard-mobile')?.addEventListener('click', openLeaderboard);
+        document.getElementById('btn-leaderboard-desktop')?.addEventListener('click', openLeaderboard);
+
+
+        window.onload = function() {
+            ensureProfile();
+            loadGame();
+            resizeCanvas();
+            calculateStats();
+            renderShop();
+            requestAnimationFrame(updateAndRender);
+        };
+    </script>
+</body>
+</html>
