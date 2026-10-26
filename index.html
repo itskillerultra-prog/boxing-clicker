@@ -51,7 +51,10 @@
         canvas {
             touch-action: none;
         }
-    </style>
+            body.low-performance-mode * { animation-duration: 0.01ms !important; transition-duration: 0.08s !important; }
+        body.low-performance-mode .animate-pulse { animation: none !important; }
+        body.low-performance-mode .shadow-2xl, body.low-performance-mode .shadow-lg, body.low-performance-mode .shadow-xl { box-shadow: none !important; }
+</style>
 </head>
 <body class="h-screen w-screen flex flex-col justify-between overflow-hidden bg-slate-950">
 
@@ -190,13 +193,39 @@
 
 
     <!-- USERNAME MODAL -->
-    <div id="username-modal" class="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-4 hidden">
-        <div class="bg-slate-900 border border-slate-700 w-full max-w-md rounded-2xl p-6 shadow-2xl space-y-5">
-            <h3 class="font-arcade text-3xl text-white font-bold">CHOOSE USERNAME</h3>
-            <p class="text-sm text-slate-400">Your username will be used on the leaderboard.</p>
-            <input id="username-input" maxlength="16" autocomplete="off" class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-700 text-white outline-none focus:border-blue-500" placeholder="Enter username">
-            <button id="btn-confirm-username" class="w-full px-4 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold">CONFIRM</button>
+    <div id="username-modal" class="fixed inset-0 bg-black/95 z-[100] flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-700 w-full max-w-md rounded-2xl p-6 shadow-2xl space-y-4">
+            <h3 id="auth-title" class="font-arcade text-3xl text-white font-bold">ACCOUNT LOGIN</h3>
+            <p id="auth-subtitle" class="text-sm text-slate-400">Enter your username, check it, then use your password to log in on any device.</p>
+            <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Username</label>
+            <input id="username-input" maxlength="16" autocomplete="username" class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-700 text-white outline-none focus:border-blue-500" placeholder="Enter username">
+            <button id="btn-check-username" class="w-full px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold">CHECK USERNAME</button>
+            <div id="auth-password-area" class="space-y-3 hidden">
+                <div><label class="text-xs font-bold uppercase tracking-wider text-slate-500">Password</label>
+                <input id="password-input" type="password" autocomplete="new-password" class="mt-1 w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-700 text-white outline-none focus:border-blue-500" placeholder="Minimum 4 characters"></div>
+                <div id="confirm-password-wrap"><label class="text-xs font-bold uppercase tracking-wider text-slate-500">Confirm Password</label>
+                <input id="confirm-password-input" type="password" autocomplete="new-password" class="mt-1 w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-700 text-white outline-none focus:border-blue-500" placeholder="Confirm password"></div>
+                <div id="recovery-wrap" class="space-y-2 border-t border-slate-800 pt-3">
+                    <p class="text-xs text-amber-300 font-bold">Recovery is optional, but recommended.</p>
+                    <p class="text-[11px] text-slate-400">It's your choice whether to add an email or phone number. If you don't add one, you may lose the account if you forget your password.</p>
+                    <input id="email-input" type="email" autocomplete="email" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white outline-none focus:border-blue-500" placeholder="Email (optional)">
+                    <input id="phone-input" type="tel" autocomplete="tel" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white outline-none focus:border-blue-500" placeholder="Phone number (optional)">
+                </div>
+                <p class="text-[10px] text-slate-500">If your browser supports Google Password Manager, it may offer to save this password after account creation.</p>
+                <button id="btn-auth-submit" class="w-full px-4 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold">CREATE ACCOUNT</button>
+                <button id="btn-forgot-password" type="button" class="w-full text-xs text-blue-400 hover:text-blue-300 font-bold hidden">FORGOT PASSWORD / RESET</button>
+            </div>
+            <div id="auth-suggestions" class="hidden space-y-2"><p class="text-xs text-amber-300 font-bold">That username is already taken. Try one of these:</p><div id="username-suggestion-list" class="grid grid-cols-3 gap-2"></div></div>
             <p id="username-error" class="text-xs text-red-400 hidden"></p>
+        </div>
+    </div>
+
+    <!-- PASSWORD RESET MODAL -->
+    <div id="password-reset-modal" class="fixed inset-0 bg-black/95 z-[110] flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-700 w-full max-w-md rounded-2xl p-6 shadow-2xl space-y-4">
+            <h3 class="font-arcade text-2xl text-blue-300 font-bold">RESET PASSWORD</h3>
+            <p class="text-xs text-slate-400">For security, a forgotten password can only be reset after a verified recovery method is connected. Your email/phone is optional when creating the account, but without one you may lose the account if you forget the password.</p>
+            <button id="btn-close-reset-password" class="w-full px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold">CLOSE</button>
         </div>
     </div>
 
@@ -208,7 +237,7 @@
                 <button id="btn-close-leaderboard" class="text-slate-400 hover:text-white text-xl"><i class="fas fa-xmark"></i></button>
             </div>
             <div class="grid grid-cols-12 gap-2 text-[10px] uppercase tracking-wider text-slate-500 font-bold px-3 py-3">
-                <div class="col-span-1">#</div><div class="col-span-5">Player</div><div class="col-span-3 text-right">Cash</div><div class="col-span-3 text-right">Punches</div>
+                <div class="col-span-1">#</div><div class="col-span-4">Player</div><div class="col-span-2 text-right">Cash</div><div class="col-span-2 text-right">Punches</div><div class="col-span-3 text-right">Rebirths</div>
             </div>
             <div id="leaderboard-list" class="space-y-2 max-h-[55vh] overflow-y-auto custom-scrollbar"></div>
             <p id="leaderboard-status" class="text-center text-xs text-slate-500 mt-4"></p>
@@ -386,7 +415,23 @@
                 punchBoost: { count: 0, price: 3, max: 100, name: "+5% Punch Power", desc: "Permanent punch earnings", icon: "fa-hand-fist" },
                 autoBoost: { count: 0, price: 4, max: 100, name: "+5% Auto Power", desc: "Permanent auto earnings", icon: "fa-robot" },
                 critBoost: { count: 0, price: 5, max: 50, name: "+1% Crit Chance", desc: "Permanent critical chance", icon: "fa-crosshairs" },
-                tokenDiscount: { count: 0, price: 10, max: 20, name: "Token Discount", desc: "Rebirths give extra tokens", icon: "fa-coins" }
+                tokenDiscount: { count: 0, price: 10, max: 20, name: "Token Discount", desc: "Rebirths give extra tokens", icon: "fa-coins" },
+                critDamage: { count: 0, price: 8, max: 100, name: "Critical Damage", desc: "+2% critical damage", icon: "fa-fire" },
+                frenzyBoost: { count: 0, price: 12, max: 100, name: "Frenzy Power", desc: "+2% frenzy earnings", icon: "fa-gauge-high" },
+                rebirthBoost: { count: 0, price: 15, max: 100, name: "Rebirth Power", desc: "+2% rebirth bonus", icon: "fa-arrows-rotate" },
+                bagBoost: { count: 0, price: 20, max: 100, name: "Skin Power", desc: "+3% bag multiplier", icon: "fa-shield-halved" },
+                offlineBoost: { count: 0, price: 25, max: 50, name: "Offline Power", desc: "Future offline earnings bonus", icon: "fa-clock" },
+                tokenMastery: { count: 0, price: 30, max: 50, name: "Token Mastery", desc: "+1 extra token every 5 rebirths", icon: "fa-crown" },
+                punchSpeed: { count: 0, price: 35, max: 100, name: "Punch Speed", desc: "+1% faster auto cycle", icon: "fa-stopwatch" },
+                cashSurge: { count: 0, price: 40, max: 100, name: "Cash Surge", desc: "+2% all cash earnings", icon: "fa-sack-dollar" },
+                bossDamage: { count: 0, price: 45, max: 100, name: "Boss Damage", desc: "+2% punch multiplier", icon: "fa-skull-crossbones" },
+                comboMastery: { count: 0, price: 50, max: 100, name: "Combo Mastery", desc: "+1% frenzy duration", icon: "fa-fire-flame-curved" },
+                goldenTouch: { count: 0, price: 60, max: 100, name: "Golden Touch", desc: "+3% skin earnings", icon: "fa-hand-sparkles" },
+                megaCrit: { count: 0, price: 75, max: 75, name: "Mega Crit", desc: "+1% critical chance", icon: "fa-burst" },
+                rebirthRush: { count: 0, price: 90, max: 50, name: "Rebirth Rush", desc: "+5% rebirth token rewards", icon: "fa-forward-fast" },
+                cosmicLuck: { count: 0, price: 120, max: 50, name: "Cosmic Luck", desc: "+1% chance for bonus cash", icon: "fa-stars" },
+                eternalPower: { count: 0, price: 150, max: 50, name: "Eternal Power", desc: "+5% total earnings", icon: "fa-infinity" },
+                titanMastery: { count: 0, price: 200, max: 50, name: "Titan Mastery", desc: "+10% punch power", icon: "fa-crown" }
             }
         };
 
@@ -554,10 +599,15 @@
         document.getElementById('btn-close-settings').addEventListener('click', closeSettings);
         document.getElementById('btn-save-close').addEventListener('click', closeSettings);
 
-        btnToggleFx.addEventListener('click', () => {
-            gameState.lowGraphics = !gameState.lowGraphics;
+        function applyGraphicsMode() {
+            document.body.classList.toggle('low-performance-mode', !!gameState.lowGraphics);
             btnToggleFx.textContent = gameState.lowGraphics ? 'LOW (FAST)' : 'HIGH FX';
             btnToggleFx.className = `px-3 py-1.5 rounded-lg text-xs font-bold ${gameState.lowGraphics ? 'bg-amber-600' : 'bg-blue-600'} text-white`;
+        }
+        btnToggleFx.addEventListener('click', () => {
+            gameState.lowGraphics = !gameState.lowGraphics;
+            applyGraphicsMode();
+            saveGame();
         });
 
         btnToggleSound.addEventListener('click', () => {
@@ -687,14 +737,25 @@
             const tokenCashMult = 1 + ((gameState.tokenShop?.cashBoost?.count || 0) * 0.05);
             const tokenPunchMult = 1 + ((gameState.tokenShop?.punchBoost?.count || 0) * 0.05);
             const tokenAutoMult = 1 + ((gameState.tokenShop?.autoBoost?.count || 0) * 0.05);
+            const tokenFrenzyMult = 1 + ((gameState.tokenShop?.frenzyBoost?.count || 0) * 0.02);
+            const tokenRebirthMult = 1 + ((gameState.tokenShop?.rebirthBoost?.count || 0) * 0.02);
+            const tokenBagMult = 1 + ((gameState.tokenShop?.bagBoost?.count || 0) * 0.03);
+            const tokenCashSurge = 1 + ((gameState.tokenShop?.cashSurge?.count || 0) * 0.02);
+            const tokenBossDamage = 1 + ((gameState.tokenShop?.bossDamage?.count || 0) * 0.02);
+            const tokenGoldenTouch = 1 + ((gameState.tokenShop?.goldenTouch?.count || 0) * 0.03);
+            const tokenEternalPower = 1 + ((gameState.tokenShop?.eternalPower?.count || 0) * 0.05);
+            const tokenTitanMastery = 1 + ((gameState.tokenShop?.titanMastery?.count || 0) * 0.10);
             let permanentBoostMult = 1;
             for (const k in gameState.upgrades) {
                 const item = gameState.upgrades[k];
                 if (item.boostType === 'cash' && item.boost) permanentBoostMult += item.boost * item.count;
             }
 
-            gameState.cpcMultiplier = baseCpc * skinMult * frenzyMult * rebirthMult * tokenCashMult * tokenPunchMult * permanentBoostMult;
-            gameState.cpsMultiplier = baseCps * skinMult * frenzyMult * rebirthMult * tokenCashMult * tokenAutoMult * permanentBoostMult;
+            const boostedSkinMult = skinMult * tokenBagMult;
+            const boostedFrenzyMult = frenzyMult * tokenFrenzyMult;
+            const boostedRebirthMult = rebirthMult * tokenRebirthMult;
+            gameState.cpcMultiplier = baseCpc * boostedSkinMult * boostedFrenzyMult * boostedRebirthMult * tokenCashMult * tokenPunchMult * tokenCashSurge * tokenBossDamage * tokenGoldenTouch * tokenEternalPower * tokenTitanMastery * permanentBoostMult;
+            gameState.cpsMultiplier = baseCps * boostedSkinMult * boostedFrenzyMult * boostedRebirthMult * tokenCashMult * tokenAutoMult * tokenCashSurge * tokenGoldenTouch * tokenEternalPower * tokenTitanMastery * permanentBoostMult;
 
             // Render stats on HUD
             const formattedCash = `$${Math.floor(gameState.cash).toLocaleString()}`;
@@ -718,8 +779,9 @@
 
             // Crit Calculation
             const critLevel = gameState.upgrades.critMultiplier.count;
-            const isCrit = Math.random() < (critLevel * 0.05);
-            const critMult = isCrit ? 2.5 : 1;
+            const critChance = Math.min(0.95, (critLevel * 0.05) + ((gameState.tokenShop?.critBoost?.count || 0) * 0.01) + ((gameState.tokenShop?.megaCrit?.count || 0) * 0.01));
+            const isCrit = Math.random() < critChance;
+            const critMult = isCrit ? (2.5 + ((gameState.tokenShop?.critDamage?.count || 0) * 0.02)) : 1;
 
             const earnings = gameState.cpcMultiplier * critMult;
             gameState.cash += earnings;
@@ -1132,6 +1194,8 @@
                         // This fixes the old bug where the button kept showing the previous price
                         // until the shop was manually refreshed.
                         btn.textContent = `$${formatNumber(price)}`;
+                        const countBadge = document.querySelector(`#upgrade-card-${key} span`);
+                        if (countBadge) countBadge.textContent = `x${item.count}`;
                         btn.disabled = !canAfford;
                         if (canAfford) {
                             btn.className = "px-3 py-1.5 rounded-xl text-xs font-bold transition flex-shrink-0 bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20 cursor-pointer";
@@ -1147,7 +1211,7 @@
                     const canAfford = gameState.rebirthTokens >= item.price && !maxed;
                     const card = document.createElement('div');
                     card.className = 'p-3 rounded-xl border flex items-center justify-between transition bg-slate-900/80 border-slate-800';
-                    card.innerHTML = `<div class="flex items-center gap-3"><div class="w-11 h-11 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-center text-purple-400 text-lg"><i class="fas ${item.icon}"></i></div><div><h4 class="font-bold text-sm text-slate-100">${item.name} <span class="text-[10px] bg-purple-950 text-purple-300 border border-purple-800/60 px-1.5 py-0.5 rounded-md">x${item.count}/${item.max}</span></h4><p class="text-xs text-slate-400">${item.desc}</p></div></div><button id="token-btn-${key}" class="px-3 py-1.5 rounded-xl text-xs font-bold">${maxed ? 'MAXED' : item.price + ' TOKENS'}</button>`;
+                    card.innerHTML = `<div class="flex items-center gap-3 min-w-0"><div class="w-11 h-11 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-center text-purple-400 text-lg flex-shrink-0"><i class="fas ${item.icon}"></i></div><div class="min-w-0"><h4 class="font-bold text-sm text-slate-100">${item.name} <span class="text-[10px] bg-purple-950 text-purple-300 border border-purple-800/60 px-1.5 py-0.5 rounded-md">x${item.count}/${item.max}</span></h4><p class="text-xs text-slate-400">${item.desc}</p></div></div><button id="token-btn-${key}" class="min-w-[82px] px-2 py-2 rounded-xl text-xs font-bold border border-purple-800/60 bg-purple-950/70 text-purple-200">${maxed ? 'MAXED' : `<span class="block text-[9px] uppercase text-purple-400">Cost</span><span class="block text-sm font-black">${item.price}</span><span class="block text-[9px] uppercase text-purple-300">TOKENS</span>`}</button>`;
                     card.querySelector(`#token-btn-${key}`).addEventListener('click', () => buyTokenUpgrade(key));
                     shopContainer.appendChild(card);
                 }
@@ -1272,7 +1336,9 @@
                     activeBagSkin: gameState.activeBagSkin,
                     rebirths: gameState.rebirths,
                     rebirthTokens: gameState.rebirthTokens,
-                    tokenShop: gameState.tokenShop
+                    tokenShop: gameState.tokenShop,
+                    lowGraphics: gameState.lowGraphics,
+                    soundEnabled: gameState.soundEnabled
                 };
                 localStorage.setItem('boxing_clicker_save_v2', JSON.stringify(data));
             } catch (e) {}
@@ -1287,6 +1353,8 @@
                     gameState.totalPunches = data.totalPunches || 0;
                     gameState.rebirths = Math.max(0, Math.floor(data.rebirths || 0));
                     gameState.rebirthTokens = Math.max(0, Math.floor(data.rebirthTokens || 0));
+                    gameState.lowGraphics = !!data.lowGraphics;
+                    gameState.soundEnabled = data.soundEnabled !== false;
                     if (data.tokenShop) {
                         for (const k in data.tokenShop) {
                             if (gameState.tokenShop[k]) gameState.tokenShop[k].count = Math.max(0, Math.min(gameState.tokenShop[k].max, Math.floor(data.tokenShop[k].count || 0)));
@@ -1315,9 +1383,10 @@
 
         
         // ===== PLAYER PROFILE + LEADERBOARD =====
-        const PROFILE_KEY = 'boxing_clicker_profile_v1';
+        const PROFILE_KEY = 'boxing_clicker_profile_v2';
         const LEADERBOARD_KEY = 'boxing_clicker_local_leaderboard_v1';
         const ONLINE_LEADERBOARD_API = '/api/leaderboard';
+        let authMode = 'auto';
 
         function formatNumber(value) {
             const n = Number(value) || 0, a = Math.abs(n);
@@ -1329,15 +1398,15 @@
             }
             return Math.floor(n).toLocaleString();
         }
-
         function getProfile() {
             try { return JSON.parse(localStorage.getItem(PROFILE_KEY) || 'null'); } catch(e) { return null; }
         }
-        function saveProfile(username) {
+        function saveProfile(username, playerId, authToken) {
             const old = getProfile();
             localStorage.setItem(PROFILE_KEY, JSON.stringify({
-                playerId: old?.playerId || ('p_' + Date.now() + '_' + Math.random().toString(36).slice(2)),
-                username
+                playerId: playerId || old?.playerId || ('p_' + Date.now() + '_' + Math.random().toString(36).slice(2)),
+                username,
+                authToken: authToken || old?.authToken || ''
             }));
             updateSettingsUsername();
         }
@@ -1347,31 +1416,157 @@
             const rankEl = document.getElementById('settings-rank');
             if (rankEl) rankEl.textContent = `Rank: ${getRebirthTitle ? getRebirthTitle() : 'Rookie'}`;
         }
-        function openUsernameModal() {
-            const modal = document.getElementById('username-modal');
-            document.getElementById('username-input').value = getProfile()?.username || '';
+        function showAuthFields() {
+            document.getElementById('auth-password-area').classList.remove('hidden');
             document.getElementById('username-error').classList.add('hidden');
-            modal.classList.remove('hidden');
-            setTimeout(() => document.getElementById('username-input').focus(), 50);
         }
-        function confirmUsername() {
-            const input = document.getElementById('username-input'), error = document.getElementById('username-error');
-            const name = input.value.trim();
+        function showSuggestions(list) {
+            const wrap = document.getElementById('auth-suggestions');
+            const box = document.getElementById('username-suggestion-list');
+            box.innerHTML = '';
+            (list || []).slice(0, 6).forEach(name => {
+                const b = document.createElement('button');
+                b.className = 'px-2 py-2 rounded-lg bg-slate-800 hover:bg-blue-700 text-white text-xs font-bold border border-slate-700';
+                b.textContent = name;
+                b.onclick = () => {
+                    document.getElementById('username-input').value = name;
+                    authMode = 'register';
+                    document.getElementById('auth-title').textContent = 'CREATE ACCOUNT';
+                    document.getElementById('confirm-password-wrap').classList.remove('hidden');
+                    document.getElementById('btn-auth-submit').textContent = 'CREATE ACCOUNT';
+                    document.getElementById('btn-forgot-password').classList.add('hidden');
+                    document.getElementById('recovery-wrap').classList.remove('hidden');
+                    showAuthFields();
+                    wrap.classList.add('hidden');
+                };
+                box.appendChild(b);
+            });
+            wrap.classList.toggle('hidden', !(list && list.length));
+        }
+        async function checkUsername() {
+            const name = document.getElementById('username-input').value.trim();
+            const error = document.getElementById('username-error');
             if (!/^[A-Za-z0-9 _-]{2,16}$/.test(name)) {
                 error.textContent = 'Use 2–16 letters, numbers, spaces, _ or - only.';
                 error.classList.remove('hidden'); return;
             }
-            saveProfile(name);
-            document.getElementById('username-modal').classList.add('hidden');
-            updateLocalLeaderboard();
+            try {
+                const r = await fetch(`${ONLINE_LEADERBOARD_API}?check=${encodeURIComponent(name)}`);
+                const data = await r.json();
+                error.classList.add('hidden');
+                showAuthFields();
+                if (data.exists) {
+                    authMode = 'login';
+                    document.getElementById('auth-title').textContent = 'LOGIN';
+                    document.getElementById('auth-subtitle').textContent = 'Username found. Enter the password for this account.';
+                    document.getElementById('confirm-password-wrap').classList.add('hidden');
+                    document.getElementById('btn-auth-submit').textContent = 'LOGIN';
+                    document.getElementById('btn-forgot-password').classList.remove('hidden');
+                    document.getElementById('recovery-wrap').classList.add('hidden');
+                    showSuggestions(data.suggestions || []);
+                } else {
+                    authMode = 'register';
+                    document.getElementById('auth-title').textContent = 'CREATE ACCOUNT';
+                    document.getElementById('auth-subtitle').textContent = 'Username is available. Create a password for this account.';
+                    document.getElementById('confirm-password-wrap').classList.remove('hidden');
+                    document.getElementById('btn-auth-submit').textContent = 'CREATE ACCOUNT';
+                    document.getElementById('btn-forgot-password').classList.add('hidden');
+                    document.getElementById('recovery-wrap').classList.remove('hidden');
+                    document.getElementById('auth-suggestions').classList.add('hidden');
+                }
+            } catch(e) {
+                error.textContent = 'Could not check username. Online account server is unavailable.';
+                error.classList.remove('hidden');
+            }
         }
+        function applyRemoteGameState(remote) {
+            if (!remote || typeof remote !== 'object') return;
+            try {
+                if (Number.isFinite(Number(remote.cash))) gameState.cash = Math.max(0, Number(remote.cash));
+                if (Number.isFinite(Number(remote.totalPunches))) gameState.totalPunches = Math.max(0, Math.floor(Number(remote.totalPunches)));
+                if (Number.isFinite(Number(remote.rebirths))) gameState.rebirths = Math.max(0, Math.floor(Number(remote.rebirths)));
+                if (Number.isFinite(Number(remote.rebirthTokens))) gameState.rebirthTokens = Math.max(0, Math.floor(Number(remote.rebirthTokens)));
+                if (remote.activeBagSkin && gameState.bags[remote.activeBagSkin]) gameState.activeBagSkin = remote.activeBagSkin;
+                if (remote.lowGraphics !== undefined) gameState.lowGraphics = !!remote.lowGraphics;
+                if (remote.soundEnabled !== undefined) gameState.soundEnabled = remote.soundEnabled !== false;
+                if (remote.upgrades) for (const k in remote.upgrades) if (gameState.upgrades[k]) gameState.upgrades[k].count = Math.max(0, Math.floor(Number(remote.upgrades[k].count) || 0));
+                if (remote.bags) for (const k in remote.bags) if (gameState.bags[k]) gameState.bags[k].owned = !!remote.bags[k].owned;
+                if (remote.tokenShop) for (const k in remote.tokenShop) if (gameState.tokenShop[k]) gameState.tokenShop[k].count = Math.max(0, Math.min(gameState.tokenShop[k].max, Math.floor(Number(remote.tokenShop[k].count) || 0)));
+                applyGraphicsMode();
+                calculateStats();
+                saveGame();
+            } catch (e) {}
+        }
+
+        async function confirmUsername() {
+            const name = document.getElementById('username-input').value.trim();
+            const password = document.getElementById('password-input').value;
+            const confirm = document.getElementById('confirm-password-input').value;
+            const error = document.getElementById('username-error');
+            if (password.length < 4) { error.textContent = 'Password must be at least 4 characters.'; error.classList.remove('hidden'); return; }
+            if (authMode === 'register' && password !== confirm) { error.textContent = 'Passwords do not match.'; error.classList.remove('hidden'); return; }
+            const email = document.getElementById('email-input').value.trim();
+            const phone = document.getElementById('phone-input').value.trim();
+            if (authMode === 'register' && !email && !phone) {
+                const ok = confirm('Are you sure you want to create this ID without an email or phone recovery method? If you forget the password, the account may be lost.');
+                if (!ok) return;
+            }
+            const btn = document.getElementById('btn-auth-submit');
+            btn.disabled = true; btn.textContent = 'PLEASE WAIT...'; error.classList.add('hidden');
+            try {
+                const r = await fetch(ONLINE_LEADERBOARD_API, {
+                    method: 'POST', headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({action: authMode === 'login' ? 'login' : 'register', username:name, password, confirmPassword:confirm, email, phone})
+                });
+                const data = await r.json();
+                if (!r.ok || !data.success) {
+                    if (data.suggestions) showSuggestions(data.suggestions);
+                    error.textContent = data.error || 'Unable to continue.';
+                    error.classList.remove('hidden'); return;
+                }
+                saveProfile(data.username || name, data.playerId, data.authToken);
+                if (authMode === 'login' && data.gameState) applyRemoteGameState(data.gameState);
+                document.getElementById('username-modal').classList.add('hidden');
+                updateLocalLeaderboard();
+                syncOnlineLeaderboard();
+            } catch(e) {
+                error.textContent = 'Could not connect to the account server.';
+                error.classList.remove('hidden');
+            } finally {
+                btn.disabled = false; btn.textContent = authMode === 'login' ? 'LOGIN' : 'CREATE ACCOUNT';
+            }
+        }
+        function openUsernameModal() {
+            const modal = document.getElementById('username-modal');
+            const p = getProfile();
+            document.getElementById('username-input').value = p?.username || '';
+            document.getElementById('password-input').value = '';
+            document.getElementById('confirm-password-input').value = '';
+            document.getElementById('email-input').value = '';
+            document.getElementById('phone-input').value = '';
+            document.getElementById('auth-password-area').classList.add('hidden');
+            document.getElementById('auth-suggestions').classList.add('hidden');
+            document.getElementById('username-error').classList.add('hidden');
+            document.getElementById('auth-title').textContent = 'ACCOUNT LOGIN';
+            document.getElementById('auth-subtitle').textContent = 'Enter your username, check it, then use your password to log in on any device.';
+            authMode = 'auto';
+            modal.classList.remove('hidden');
+            setTimeout(() => document.getElementById('username-input').focus(), 50);
+        }
+        document.getElementById('btn-check-username').addEventListener('click', checkUsername);
+        document.getElementById('btn-auth-submit').addEventListener('click', confirmUsername);
+        document.getElementById('btn-forgot-password').addEventListener('click', () => document.getElementById('password-reset-modal').classList.remove('hidden'));
+        document.getElementById('btn-close-reset-password').addEventListener('click', () => document.getElementById('password-reset-modal').classList.add('hidden'));
+        document.getElementById('username-input').addEventListener('keydown', e => { if (e.key === 'Enter') checkUsername(); });
+        document.getElementById('password-input').addEventListener('keydown', e => { if (e.key === 'Enter') confirmUsername(); });
+
         function getLocalLeaderboard() {
             try { return JSON.parse(localStorage.getItem(LEADERBOARD_KEY) || '[]'); } catch(e) { return []; }
         }
         function updateLocalLeaderboard() {
             const p = getProfile(); if (!p) return;
             const rows = getLocalLeaderboard().filter(r => r.playerId !== p.playerId);
-            rows.push({playerId:p.playerId, username:p.username, cash:Math.floor(gameState.cash||0), totalPunches:Math.floor(gameState.totalPunches||0)});
+            rows.push({playerId:p.playerId, username:p.username, cash:Math.floor(gameState.cash||0), totalPunches:Math.floor(gameState.totalPunches||0), rebirths:Math.floor(gameState.rebirths||0)});
             rows.sort((a,b) => b.cash-a.cash || b.totalPunches-a.totalPunches);
             localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(rows.slice(0,100)));
         }
@@ -1389,7 +1584,10 @@
                     body: JSON.stringify({
                         username: p.username,
                         cash: Math.floor(gameState.cash || 0),
-                        punches: Math.floor(gameState.totalPunches || 0)
+                        punches: Math.floor(gameState.totalPunches || 0),
+                        rebirths: Math.floor(gameState.rebirths || 0),
+                        authToken: p.authToken || '',
+                        gameState: { cash: gameState.cash, totalPunches: gameState.totalPunches, rebirths: gameState.rebirths, rebirthTokens: gameState.rebirthTokens, upgrades: gameState.upgrades, bags: gameState.bags, activeBagSkin: gameState.activeBagSkin, tokenShop: gameState.tokenShop, lowGraphics: gameState.lowGraphics, soundEnabled: gameState.soundEnabled }
                     })
                 });
 
@@ -1400,7 +1598,8 @@
                 return (data.players || []).map(r => ({
                     username: r.username,
                     cash: Number(r.cash) || 0,
-                    totalPunches: Number(r.punches) || 0
+                    totalPunches: Number(r.punches) || 0,
+                    rebirths: Number(r.rebirths) || 0
                 }));
             } catch (e) {
                 return null;
@@ -1422,7 +1621,7 @@
             rows.slice(0,100).forEach((r,i) => {
                 const d = document.createElement('div');
                 d.className = 'grid grid-cols-12 gap-2 items-center bg-slate-950 border border-slate-800 rounded-xl px-3 py-3';
-                d.innerHTML = `<div class="col-span-1 font-arcade text-lg ${i<3?'text-yellow-400':'text-slate-500'}">${i+1}</div><div class="col-span-5 font-bold text-sm text-white truncate">${escapeHtml(r.username||'Player')}</div><div class="col-span-3 text-right font-arcade text-yellow-400">${formatNumber(r.cash)}</div><div class="col-span-3 text-right font-arcade text-slate-300">${formatNumber(r.totalPunches)}</div>`;
+                d.innerHTML = `<div class="col-span-1 font-arcade text-lg ${i<3?'text-yellow-400':'text-slate-500'}">${i+1}</div><div class="col-span-4 font-bold text-sm text-white truncate">${escapeHtml(r.username||'Player')}</div><div class="col-span-2 text-right font-arcade text-yellow-400">${formatNumber(r.cash)}</div><div class="col-span-2 text-right font-arcade text-slate-300">${formatNumber(r.totalPunches)}</div><div class="col-span-3 text-right font-arcade text-purple-300">${formatNumber(r.rebirths||0)}</div>`;
                 list.appendChild(d);
             });
             document.getElementById('leaderboard-status').textContent = online ? 'Worldwide leaderboard' : 'Local preview — Cloudflare API will make this worldwide.';
@@ -1464,8 +1663,6 @@
         const _saveGameOriginal = saveGame;
         saveGame = function() { _saveGameOriginal(); updateLocalLeaderboard(); scheduleOnlineSync(); };
 
-        document.getElementById('btn-confirm-username').addEventListener('click', confirmUsername);
-        document.getElementById('username-input').addEventListener('keydown', e => { if (e.key === 'Enter') confirmUsername(); });
         document.getElementById('btn-change-username').addEventListener('click', openUsernameModal);
         document.getElementById('btn-close-leaderboard').addEventListener('click', () => document.getElementById('leaderboard-modal').classList.add('hidden'));
         document.getElementById('btn-settings-leaderboard').addEventListener('click', openLeaderboard);
@@ -1474,8 +1671,9 @@
 
 
         window.onload = function() {
-            ensureProfile();
             loadGame();
+            applyGraphicsMode();
+            ensureProfile();
             resizeCanvas();
             calculateStats();
             renderShop();
