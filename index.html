@@ -150,6 +150,27 @@
                 </button>
             </div>
 
+            <!-- INFINITE REBIRTH PANEL -->
+            <div class="px-3 pt-3">
+                <div class="rounded-2xl border border-purple-800/60 bg-gradient-to-r from-purple-950/70 to-slate-950 p-3 shadow-lg">
+                    <div class="flex items-center justify-between gap-2">
+                        <div>
+                            <div class="font-arcade text-lg font-bold text-purple-300 flex items-center gap-2">
+                                <i class="fas fa-infinity"></i> REBIRTH
+                            </div>
+                            <div id="rebirth-status" class="text-[11px] text-slate-400">Reach $1M to rebirth</div>
+                        </div>
+                        <button id="btn-rebirth" class="px-3 py-2 rounded-xl text-xs font-black bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed">
+                            REBIRTH
+                        </button>
+                    </div>
+                    <div class="mt-2 flex justify-between text-[10px] text-slate-500">
+                        <span id="rebirth-count">Rebirths: 0</span>
+                        <span id="rebirth-bonus">Permanent bonus: +0%</span>
+                    </div>
+                </div>
+            </div>
+
             <!-- DYNAMIC SHOP ITEMS -->
             <div class="flex-1 overflow-y-auto p-3 space-y-2.5 custom-scrollbar" id="shop-container">
             </div>
@@ -184,11 +205,27 @@
         </div>
     </div>
 
+    <!-- REBIRTH CONFIRMATION -->
+    <div id="rebirth-modal" class="fixed inset-0 bg-black/90 z-[105] flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-purple-800/70 w-full max-w-sm rounded-2xl p-6 shadow-2xl space-y-5">
+            <h3 class="font-arcade text-3xl text-purple-300 font-bold">REBIRTH?</h3>
+            <p id="rebirth-modal-text" class="text-sm text-slate-300"></p>
+            <div class="bg-slate-950 rounded-xl border border-slate-800 p-3 space-y-1 text-xs">
+                <div class="flex justify-between"><span class="text-slate-500">Next permanent bonus</span><span id="rebirth-modal-bonus" class="text-emerald-400 font-bold"></span></div>
+                <div class="flex justify-between"><span class="text-slate-500">Rebirth tokens</span><span id="rebirth-modal-tokens" class="text-purple-300 font-bold"></span></div>
+            </div>
+            <div class="flex gap-3">
+                <button id="btn-cancel-rebirth" class="flex-1 px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold">CANCEL</button>
+                <button id="btn-confirm-rebirth" class="flex-1 px-4 py-3 rounded-xl bg-purple-700 hover:bg-purple-600 text-white font-bold">REBIRTH</button>
+            </div>
+        </div>
+    </div>
+
     <!-- RESET CONFIRMATION -->
     <div id="reset-confirm-modal" class="fixed inset-0 bg-black/90 z-[110] flex items-center justify-center p-4 hidden">
         <div class="bg-slate-900 border border-red-900/60 w-full max-w-sm rounded-2xl p-6 shadow-2xl space-y-5">
             <h3 class="font-arcade text-2xl text-red-400 font-bold">RESET PROGRESS?</h3>
-            <p class="text-sm text-slate-300">This will permanently erase this game's progress on this device.</p>
+            <p class="text-sm text-slate-300">This will permanently erase this game's cash, upgrades, rebirths, tokens, and other progress on this device.</p>
             <div class="flex gap-3">
                 <button id="btn-cancel-reset" class="flex-1 px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold">CANCEL</button>
                 <button id="btn-confirm-reset" class="flex-1 px-4 py-3 rounded-xl bg-red-700 hover:bg-red-600 text-white font-bold">RESET</button>
@@ -281,6 +318,8 @@
             cpsMultiplier: 0,
             frenzyActive: false,
             frenzyMeter: 0,
+            rebirths: 0,
+            rebirthTokens: 0,
             lowGraphics: false,
             soundEnabled: true,
             activeBagSkin: 'canvas',
@@ -540,9 +579,10 @@
 
             const skinMult = gameState.bags[gameState.activeBagSkin].multiplier;
             const frenzyMult = gameState.frenzyActive ? 2 : 1;
+            const rebirthMult = 1 + (gameState.rebirths * 0.25);
 
-            gameState.cpcMultiplier = baseCpc * skinMult * frenzyMult;
-            gameState.cpsMultiplier = baseCps * skinMult * frenzyMult;
+            gameState.cpcMultiplier = baseCpc * skinMult * frenzyMult * rebirthMult;
+            gameState.cpsMultiplier = baseCps * skinMult * frenzyMult * rebirthMult;
 
             // Render stats on HUD
             const formattedCash = `$${Math.floor(gameState.cash).toLocaleString()}`;
@@ -557,6 +597,7 @@
 
             // CRITICAL FIX: Instantly refresh shop UI buttons on every state update
             updateShopItemStates();
+            updateRebirthUI();
         }
 
         function triggerHit(hitX, hitY, isAuto = false) {
@@ -793,6 +834,111 @@
             requestAnimationFrame(updateAndRender);
         }
 
+        // ===== INFINITE REBIRTH SYSTEM =====
+        function getRebirthCost() {
+            // Starts at $1M and grows x12 after every rebirth.
+            // This intentionally creates a very long, effectively endless progression.
+            const raw = 1000000 * Math.pow(12, gameState.rebirths);
+            return Math.min(raw, Number.MAX_SAFE_INTEGER);
+        }
+
+        function getRebirthTokenReward() {
+            return 1 + Math.floor(gameState.rebirths / 10);
+        }
+
+        function getRebirthTitle() {
+            const r = gameState.rebirths;
+            const titles = [
+                'Rookie',
+                'Contender',
+                'Amateur',
+                'Pro',
+                'Champion',
+                'Legend',
+                'Mythic',
+                'Titan',
+                'Cosmic',
+                'Infinite'
+            ];
+            return titles[Math.min(Math.floor(r / 5), titles.length - 1)];
+        }
+
+        function updateRebirthUI() {
+            const cost = getRebirthCost();
+            const canRebirth = gameState.cash >= cost;
+            const nextBonus = gameState.rebirths * 25 + 25;
+
+            const status = document.getElementById('rebirth-status');
+            const count = document.getElementById('rebirth-count');
+            const bonus = document.getElementById('rebirth-bonus');
+            const btn = document.getElementById('btn-rebirth');
+
+            if (status) {
+                status.textContent = canRebirth
+                    ? `Ready! Cost: $${formatNumber(cost)}`
+                    : `Need $${formatNumber(cost)} • ${getRebirthTitle()} rank`;
+            }
+            if (count) count.textContent = `Rebirths: ${formatNumber(gameState.rebirths)} • Tokens: ${formatNumber(gameState.rebirthTokens)}`;
+            if (bonus) bonus.textContent = `Permanent bonus: +${gameState.rebirths * 25}%`;
+
+            if (btn) {
+                if (canRebirth) {
+                    btn.disabled = false;
+                    btn.className = "px-3 py-2 rounded-xl text-xs font-black bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-600/20 cursor-pointer";
+                } else {
+                    btn.disabled = true;
+                    btn.className = "px-3 py-2 rounded-xl text-xs font-black bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed";
+                }
+            }
+
+            return { cost, nextBonus };
+        }
+
+        function openRebirthModal() {
+            const { cost, nextBonus } = updateRebirthUI();
+            if (gameState.cash < cost) return;
+
+            const reward = getRebirthTokenReward();
+            document.getElementById('rebirth-modal-text').textContent =
+                `Your current cash and normal upgrades will reset. Permanent rebirth bonuses stay forever. You will become Rebirth #${gameState.rebirths + 1}.`;
+            document.getElementById('rebirth-modal-bonus').textContent = `+${nextBonus}%`;
+            document.getElementById('rebirth-modal-tokens').textContent = `+${reward}`;
+            document.getElementById('rebirth-modal').classList.remove('hidden');
+        }
+
+        function performRebirth() {
+            const cost = getRebirthCost();
+            if (gameState.cash < cost) return;
+
+            gameState.rebirths++;
+            gameState.rebirthTokens += getRebirthTokenReward();
+
+            // Reset the normal grind, but keep permanent rebirth progress and owned skins.
+            gameState.cash = 0;
+            gameState.totalPunches = 0;
+            gameState.cpcMultiplier = 1;
+            gameState.cpsMultiplier = 0;
+            gameState.frenzyActive = false;
+            gameState.frenzyMeter = 0;
+
+            for (const key in gameState.upgrades) {
+                gameState.upgrades[key].count = 0;
+            }
+
+            document.getElementById('rebirth-modal').classList.add('hidden');
+            playSound('upgrade');
+            calculateStats();
+            renderShop();
+            saveGame();
+            updateRebirthUI();
+        }
+
+        document.getElementById('btn-rebirth').addEventListener('click', openRebirthModal);
+        document.getElementById('btn-cancel-rebirth').addEventListener('click', () => {
+            document.getElementById('rebirth-modal').classList.add('hidden');
+        });
+        document.getElementById('btn-confirm-rebirth').addEventListener('click', performRebirth);
+
         // SHOP UI GENERATOR
         function renderShop() {
             shopContainer.innerHTML = '';
@@ -965,7 +1111,9 @@
                     totalPunches: gameState.totalPunches,
                     upgrades: gameState.upgrades,
                     bags: gameState.bags,
-                    activeBagSkin: gameState.activeBagSkin
+                    activeBagSkin: gameState.activeBagSkin,
+                    rebirths: gameState.rebirths,
+                    rebirthTokens: gameState.rebirthTokens
                 };
                 localStorage.setItem('boxing_clicker_save_v2', JSON.stringify(data));
             } catch (e) {}
@@ -978,6 +1126,8 @@
                     const data = JSON.parse(saved);
                     gameState.cash = data.cash || 0;
                     gameState.totalPunches = data.totalPunches || 0;
+                    gameState.rebirths = Math.max(0, Math.floor(data.rebirths || 0));
+                    gameState.rebirthTokens = Math.max(0, Math.floor(data.rebirthTokens || 0));
                     if (data.activeBagSkin) gameState.activeBagSkin = data.activeBagSkin;
 
                     if (data.upgrades) {
@@ -1161,6 +1311,7 @@
             resizeCanvas();
             calculateStats();
             renderShop();
+            updateRebirthUI();
             requestAnimationFrame(updateAndRender);
         };
     </script>
