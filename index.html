@@ -145,6 +145,9 @@
                 <button id="tab-boost" class="flex-1 py-2 text-center font-arcade text-base tracking-wider font-bold rounded-xl text-slate-400 hover:text-white transition flex items-center justify-center gap-1.5">
                     <i class="fas fa-bolt"></i> BOOST
                 </button>
+                <button id="tab-tokens" class="flex-1 py-2 text-center font-arcade text-base tracking-wider font-bold rounded-xl text-slate-400 hover:text-white transition flex items-center justify-center gap-1.5">
+                    <i class="fas fa-coins"></i> TOKENS
+                </button>
                 <button id="tab-bags" class="flex-1 py-2 text-center font-arcade text-base tracking-wider font-bold rounded-xl text-slate-400 hover:text-white transition flex items-center justify-center gap-1.5">
                     <i class="fas fa-shield-halved"></i> SKINS
                 </button>
@@ -168,6 +171,13 @@
                         <span id="rebirth-count">Rebirths: 0</span>
                         <span id="rebirth-bonus">Permanent bonus: +0%</span>
                     </div>
+                </div>
+            </div>
+
+            <div class="px-3 pb-2">
+                <div class="rounded-xl bg-slate-950 border border-slate-800 px-3 py-2 flex justify-between text-[10px]">
+                    <span class="text-slate-500">RANK <b id="rank-display" class="text-purple-300">Rookie</b></span>
+                    <span class="text-slate-500">TOKENS <b id="token-display" class="text-purple-300">0</b></span>
                 </div>
             </div>
 
@@ -286,7 +296,7 @@
             <div class="space-y-3 border-t border-slate-800 pt-4">
                 <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400">Player</h4>
                 <div class="flex justify-between items-center bg-slate-950 p-3 rounded-xl border border-slate-800">
-                    <div><div class="font-semibold text-sm">Username</div><div id="settings-username" class="text-xs text-slate-500">Not set</div></div>
+                    <div><div class="font-semibold text-sm">Username</div><div id="settings-username" class="text-xs text-slate-500">Not set</div><div id="settings-rank" class="text-[10px] text-purple-400">Rank: Rookie</div></div>
                     <button id="btn-change-username" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-white">CHANGE</button>
                 </div>
                 <button id="btn-settings-leaderboard" class="w-full px-4 py-2 rounded-xl bg-yellow-600 hover:bg-yellow-500 text-white text-xs font-bold"><i class="fas fa-trophy mr-1"></i> Open Leaderboard</button>
@@ -307,7 +317,7 @@
     <!-- JAVASCRIPT ENGINE -->
     <script>
         /**
-         * Boxing Clicker Engine v2.0
+         * Boxing Clicker Engine v3.0 — Infinite Progression
          * Single-file HTML execution, optimized for low-end devices and reactive state rendering.
          */
 
@@ -332,6 +342,14 @@
                 cyberFists: { count: 0, basePrice: 35000, growth: 1.35, cpc: 950, name: "Cybernetic Fists", desc: "+$950 per punch", icon: "fa-robot" },
                 dragonGauntlets: { count: 0, basePrice: 250000, growth: 1.38, cpc: 5200, name: "Dragon Gauntlets", desc: "+$5,200 per punch", icon: "fa-dragon" },
                 titanStrike: { count: 0, basePrice: 1800000, growth: 1.40, cpc: 32000, name: "Titan Strike", desc: "+$32,000 per punch", icon: "fa-bolt" },
+                cosmicFists: { count: 0, basePrice: 15000000, growth: 1.44, cpc: 210000, name: "Cosmic Fists", desc: "+$210K per punch", icon: "fa-star" },
+                voidBreaker: { count: 0, basePrice: 150000000, growth: 1.46, cpc: 1500000, name: "Void Breaker", desc: "+$1.5M per punch", icon: "fa-atom" },
+                galaxyGauntlet: { count: 0, basePrice: 1800000000, growth: 1.48, cpc: 12000000, name: "Galaxy Gauntlet", desc: "+$12M per punch", icon: "fa-earth-americas" },
+                dimensionalFist: { count: 0, basePrice: 25000000000, growth: 1.50, cpc: 100000000, name: "Dimensional Fist", desc: "+$100M per punch", icon: "fa-wand-magic-sparkles" },
+                realityCrusher: { count: 0, basePrice: 400000000000, growth: 1.52, cpc: 850000000, name: "Reality Crusher", desc: "+$850M per punch", icon: "fa-burst" },
+                infinityPunch: { count: 0, basePrice: 7000000000000, growth: 1.54, cpc: 7500000000, name: "Infinity Punch", desc: "+$7.5B per punch", icon: "fa-infinity" },
+                eternalStrike: { count: 0, basePrice: 120000000000000, growth: 1.56, cpc: 70000000000, name: "Eternal Strike", desc: "+$70B per punch", icon: "fa-sun" },
+                omnifist: { count: 0, basePrice: 2000000000000000, growth: 1.58, cpc: 650000000000, name: "Omni Fist", desc: "+$650B per punch", icon: "fa-crown" },
 
                 // Auto Punchers (CPS)
                 rookieMate: { count: 0, basePrice: 50, growth: 1.26, cps: 2, name: "Rookie Gym Mate", desc: "+2 auto punches/sec", icon: "fa-user" },
@@ -341,6 +359,11 @@
                 aiSparringRing: { count: 0, basePrice: 160000, growth: 1.35, cps: 2900, name: "AI Sparring Ring", desc: "+2,900 auto punches/sec", icon: "fa-brain" },
                 mechPuncher: { count: 0, basePrice: 1100000, growth: 1.38, cps: 18500, name: "Mech Puncher", desc: "+18,500 auto punches/sec", icon: "fa-gears" },
                 galacticChamp: { count: 0, basePrice: 8500000, growth: 1.40, cps: 120000, name: "Galactic Champ", desc: "+120,000 auto punches/sec", icon: "fa-trophy" },
+                cosmicCoach: { count: 0, basePrice: 70000000, growth: 1.44, cps: 900000, name: "Cosmic Coach", desc: "+900K auto punches/sec", icon: "fa-user-astronaut" },
+                voidMachine: { count: 0, basePrice: 800000000, growth: 1.47, cps: 7500000, name: "Void Machine", desc: "+7.5M auto punches/sec", icon: "fa-black-hole" },
+                galaxyFactory: { count: 0, basePrice: 10000000000, growth: 1.50, cps: 65000000, name: "Galaxy Factory", desc: "+65M auto punches/sec", icon: "fa-industry" },
+                infinityGym: { count: 0, basePrice: 150000000000, growth: 1.53, cps: 600000000, name: "Infinity Gym", desc: "+600M auto punches/sec", icon: "fa-dumbbell" },
+                eternalEngine: { count: 0, basePrice: 2500000000000, growth: 1.56, cps: 5500000000, name: "Eternal Engine", desc: "+5.5B auto punches/sec", icon: "fa-gears" },
 
                 // Passive Boosters
                 critMultiplier: { count: 0, basePrice: 500, growth: 1.6, boost: 0.1, name: "Critical Strike Engine", desc: "+10% Critical punch chance", icon: "fa-crosshair" },
@@ -352,7 +375,18 @@
                 cyber: { name: "Cyber Neon Bag", price: 35000, multiplier: 3.5, color: "#00f0ff", owned: false, accent: "#0080ff", text: "#38bdf8" },
                 gold: { name: "Golden Champion Bag", price: 250000, multiplier: 7.0, color: "#eab308", owned: false, accent: "#ca8a04", text: "#fde047" },
                 diamond: { name: "Diamond Heavy Bag", price: 2000000, multiplier: 15.0, color: "#38bdf8", owned: false, accent: "#0284c7", text: "#bae6fd" },
-                obsidian: { name: "Obsidian Titan Bag", price: 15000000, multiplier: 40.0, color: "#1e1b4b", owned: false, accent: "#312e81", text: "#a5b4fc" }
+                obsidian: { name: "Obsidian Titan Bag", price: 15000000, multiplier: 40.0, color: "#1e1b4b", owned: false, accent: "#312e81", text: "#a5b4fc" },
+                plasma: { name: "Plasma Champion Bag", price: 250000000, multiplier: 85.0, color: "#7c3aed", owned: false, accent: "#db2777", text: "#f0abfc" },
+                galaxy: { name: "Galaxy Heavy Bag", price: 10000000000, multiplier: 200.0, color: "#111827", owned: false, accent: "#4f46e5", text: "#c4b5fd" },
+                infinity: { name: "Infinity Core Bag", price: 1000000000000, multiplier: 600.0, color: "#172554", owned: false, accent: "#06b6d4", text: "#67e8f9" },
+                eternal: { name: "Eternal Champion Bag", price: 100000000000000, multiplier: 2000.0, color: "#3f3f46", owned: false, accent: "#f59e0b", text: "#fde68a" }
+            },
+            tokenShop: {
+                cashBoost: { count: 0, price: 2, max: 100, name: "+5% Cash", desc: "Permanent cash multiplier", icon: "fa-money-bill-trend-up" },
+                punchBoost: { count: 0, price: 3, max: 100, name: "+5% Punch Power", desc: "Permanent punch earnings", icon: "fa-hand-fist" },
+                autoBoost: { count: 0, price: 4, max: 100, name: "+5% Auto Power", desc: "Permanent auto earnings", icon: "fa-robot" },
+                critBoost: { count: 0, price: 5, max: 50, name: "+1% Crit Chance", desc: "Permanent critical chance", icon: "fa-crosshairs" },
+                tokenDiscount: { count: 0, price: 10, max: 20, name: "Token Discount", desc: "Rebirths give extra tokens", icon: "fa-coins" }
             }
         };
 
@@ -473,9 +507,13 @@
             document.getElementById('reset-confirm-modal').classList.add('hidden');
         });
         document.getElementById('btn-confirm-reset').addEventListener('click', () => {
-            localStorage.removeItem('boxing_clicker_save_v2');
+            try {
+                localStorage.removeItem('boxing_clicker_save_v2');
+                localStorage.removeItem(LEADERBOARD_KEY);
+                clearTimeout(onlineSyncTimer);
+            } catch (e) {}
             document.getElementById('reset-confirm-modal').classList.add('hidden');
-            location.reload();
+            window.location.href = window.location.href.split('#')[0] + '?reset=' + Date.now();
         });
 
         // Object Pool for Particles and Floating Texts
@@ -580,9 +618,12 @@
             const skinMult = gameState.bags[gameState.activeBagSkin].multiplier;
             const frenzyMult = gameState.frenzyActive ? 2 : 1;
             const rebirthMult = 1 + (gameState.rebirths * 0.25);
+            const tokenCashMult = 1 + ((gameState.tokenShop?.cashBoost?.count || 0) * 0.05);
+            const tokenPunchMult = 1 + ((gameState.tokenShop?.punchBoost?.count || 0) * 0.05);
+            const tokenAutoMult = 1 + ((gameState.tokenShop?.autoBoost?.count || 0) * 0.05);
 
-            gameState.cpcMultiplier = baseCpc * skinMult * frenzyMult * rebirthMult;
-            gameState.cpsMultiplier = baseCps * skinMult * frenzyMult * rebirthMult;
+            gameState.cpcMultiplier = baseCpc * skinMult * frenzyMult * rebirthMult * tokenCashMult * tokenPunchMult;
+            gameState.cpsMultiplier = baseCps * skinMult * frenzyMult * rebirthMult * tokenCashMult * tokenAutoMult;
 
             // Render stats on HUD
             const formattedCash = `$${Math.floor(gameState.cash).toLocaleString()}`;
@@ -677,7 +718,7 @@
 
             const dx = clientX - bag.x;
             const dy = clientY - bag.y;
-            if (Math.abs(dx) < 85 && Math.abs(dy) < 130) {
+            if (Math.abs(dx) < Math.max(260, canvas.width * 0.42) && Math.abs(dy) < Math.max(260, canvas.height * 0.42)) {
                 triggerHit(clientX, clientY, false);
             }
         });
@@ -843,22 +884,15 @@
         }
 
         function getRebirthTokenReward() {
-            return 1 + Math.floor(gameState.rebirths / 10);
+            return 1 + Math.floor(gameState.rebirths / 10) + (gameState.tokenShop?.tokenDiscount?.count || 0);
         }
 
         function getRebirthTitle() {
             const r = gameState.rebirths;
             const titles = [
-                'Rookie',
-                'Contender',
-                'Amateur',
-                'Pro',
-                'Champion',
-                'Legend',
-                'Mythic',
-                'Titan',
-                'Cosmic',
-                'Infinite'
+                'Rookie', 'Contender', 'Amateur', 'Pro', 'Champion', 'Elite',
+                'Master', 'Grandmaster', 'Legend', 'Mythic', 'Titan', 'Cosmic',
+                'Celestial', 'Eternal', 'Infinite'
             ];
             return titles[Math.min(Math.floor(r / 5), titles.length - 1)];
         }
@@ -880,6 +914,10 @@
             }
             if (count) count.textContent = `Rebirths: ${formatNumber(gameState.rebirths)} • Tokens: ${formatNumber(gameState.rebirthTokens)}`;
             if (bonus) bonus.textContent = `Permanent bonus: +${gameState.rebirths * 25}%`;
+            const rank = document.getElementById('rank-display');
+            const tokenDisplay = document.getElementById('token-display');
+            if (rank) rank.textContent = getRebirthTitle();
+            if (tokenDisplay) tokenDisplay.textContent = formatNumber(gameState.rebirthTokens);
 
             if (btn) {
                 if (canRebirth) {
@@ -931,6 +969,7 @@
             renderShop();
             saveGame();
             updateRebirthUI();
+            updateTokenShopStates();
         }
 
         document.getElementById('btn-rebirth').addEventListener('click', openRebirthModal);
@@ -979,6 +1018,18 @@
                     card.querySelector(`#buy-btn-${key}`).addEventListener('click', () => buyUpgrade(key));
                     shopContainer.appendChild(card);
                 }
+            } else if (currentTab === 'tokens') {
+                for (const key in gameState.tokenShop) {
+                    const item = gameState.tokenShop[key];
+                    const maxed = item.count >= item.max;
+                    const canAfford = gameState.rebirthTokens >= item.price && !maxed;
+                    const card = document.createElement('div');
+                    card.className = 'p-3 rounded-xl border flex items-center justify-between transition bg-slate-900/80 border-slate-800';
+                    card.innerHTML = `<div class="flex items-center gap-3"><div class="w-11 h-11 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-center text-purple-400 text-lg"><i class="fas ${item.icon}"></i></div><div><h4 class="font-bold text-sm text-slate-100">${item.name} <span class="text-[10px] bg-purple-950 text-purple-300 border border-purple-800/60 px-1.5 py-0.5 rounded-md">x${item.count}/${item.max}</span></h4><p class="text-xs text-slate-400">${item.desc}</p></div></div><button id="token-btn-${key}" class="px-3 py-1.5 rounded-xl text-xs font-bold">${maxed ? 'MAXED' : item.price + ' TOKENS'}</button>`;
+                    card.querySelector(`#token-btn-${key}`).addEventListener('click', () => buyTokenUpgrade(key));
+                    shopContainer.appendChild(card);
+                }
+                updateTokenShopStates();
             } else if (currentTab === 'bags') {
                 for (const key in gameState.bags) {
                     const bagItem = gameState.bags[key];
@@ -1023,6 +1074,18 @@
                         }
                     }
                 }
+            } else if (currentTab === 'tokens') {
+                for (const key in gameState.tokenShop) {
+                    const item = gameState.tokenShop[key];
+                    const maxed = item.count >= item.max;
+                    const canAfford = gameState.rebirthTokens >= item.price && !maxed;
+                    const card = document.createElement('div');
+                    card.className = 'p-3 rounded-xl border flex items-center justify-between transition bg-slate-900/80 border-slate-800';
+                    card.innerHTML = `<div class="flex items-center gap-3"><div class="w-11 h-11 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-center text-purple-400 text-lg"><i class="fas ${item.icon}"></i></div><div><h4 class="font-bold text-sm text-slate-100">${item.name} <span class="text-[10px] bg-purple-950 text-purple-300 border border-purple-800/60 px-1.5 py-0.5 rounded-md">x${item.count}/${item.max}</span></h4><p class="text-xs text-slate-400">${item.desc}</p></div></div><button id="token-btn-${key}" class="px-3 py-1.5 rounded-xl text-xs font-bold">${maxed ? 'MAXED' : item.price + ' TOKENS'}</button>`;
+                    card.querySelector(`#token-btn-${key}`).addEventListener('click', () => buyTokenUpgrade(key));
+                    shopContainer.appendChild(card);
+                }
+                updateTokenShopStates();
             } else if (currentTab === 'bags') {
                 for (const key in gameState.bags) {
                     const bagItem = gameState.bags[key];
@@ -1080,7 +1143,35 @@
             }
         }
 
+        function buyTokenUpgrade(key) {
+            const item = gameState.tokenShop[key];
+            if (!item || item.count >= item.max || gameState.rebirthTokens < item.price) return;
+            gameState.rebirthTokens -= item.price;
+            item.count++;
+            playSound('upgrade');
+            calculateStats();
+            renderShop();
+            saveGame();
+            updateRebirthUI();
+        }
+
+        function updateTokenShopStates() {
+            for (const key in gameState.tokenShop) {
+                const item = gameState.tokenShop[key];
+                const btn = document.getElementById(`token-btn-${key}`);
+                if (!btn) continue;
+                if (item.count >= item.max) {
+                    btn.className = 'px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-950 text-emerald-400 border border-emerald-800';
+                } else if (gameState.rebirthTokens >= item.price) {
+                    btn.className = 'px-3 py-1.5 rounded-xl text-xs font-bold bg-purple-600 hover:bg-purple-500 text-white cursor-pointer';
+                } else {
+                    btn.className = 'px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800 text-slate-500 border border-slate-800 cursor-not-allowed';
+                }
+            }
+        }
+
         // Tab Switches
+        document.getElementById('tab-tokens').addEventListener('click', () => setTab('tokens'));
         document.getElementById('tab-power').addEventListener('click', () => setTab('power'));
         document.getElementById('tab-auto').addEventListener('click', () => setTab('auto'));
         document.getElementById('tab-boost').addEventListener('click', () => setTab('boost'));
@@ -1092,6 +1183,7 @@
                 power: document.getElementById('tab-power'),
                 auto: document.getElementById('tab-auto'),
                 boost: document.getElementById('tab-boost'),
+                tokens: document.getElementById('tab-tokens'),
                 bags: document.getElementById('tab-bags')
             };
 
@@ -1113,7 +1205,8 @@
                     bags: gameState.bags,
                     activeBagSkin: gameState.activeBagSkin,
                     rebirths: gameState.rebirths,
-                    rebirthTokens: gameState.rebirthTokens
+                    rebirthTokens: gameState.rebirthTokens,
+                    tokenShop: gameState.tokenShop
                 };
                 localStorage.setItem('boxing_clicker_save_v2', JSON.stringify(data));
             } catch (e) {}
@@ -1128,6 +1221,11 @@
                     gameState.totalPunches = data.totalPunches || 0;
                     gameState.rebirths = Math.max(0, Math.floor(data.rebirths || 0));
                     gameState.rebirthTokens = Math.max(0, Math.floor(data.rebirthTokens || 0));
+                    if (data.tokenShop) {
+                        for (const k in data.tokenShop) {
+                            if (gameState.tokenShop[k]) gameState.tokenShop[k].count = Math.max(0, Math.min(gameState.tokenShop[k].max, Math.floor(data.tokenShop[k].count || 0)));
+                        }
+                    }
                     if (data.activeBagSkin) gameState.activeBagSkin = data.activeBagSkin;
 
                     if (data.upgrades) {
@@ -1180,6 +1278,8 @@
         function updateSettingsUsername() {
             const el = document.getElementById('settings-username');
             if (el) el.textContent = getProfile()?.username || 'Not set';
+            const rankEl = document.getElementById('settings-rank');
+            if (rankEl) rankEl.textContent = `Rank: ${getRebirthTitle ? getRebirthTitle() : 'Rookie'}`;
         }
         function openUsernameModal() {
             const modal = document.getElementById('username-modal');
@@ -1291,6 +1391,8 @@
             cpcDisplayDesktop.textContent = '+$' + formatNumber(Math.floor(gameState.cpcMultiplier));
             cpsDisplayMobile.textContent = formatNumber(Math.floor(gameState.cpsMultiplier)) + '/s';
             cpsDisplayDesktop.textContent = formatNumber(Math.floor(gameState.cpsMultiplier)) + '/s';
+            updateRebirthUI();
+            if (currentTab === 'tokens') updateTokenShopStates();
         };
 
         const _saveGameOriginal = saveGame;
