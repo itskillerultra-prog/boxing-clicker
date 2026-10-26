@@ -1,167 +1,148 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Owner Panel</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Owner Panel</title>
 
-    <style>
-        * {
-            box-sizing: border-box;
-        }
+<style>
+* {
+    box-sizing: border-box;
+}
 
-        body {
-            margin: 0;
-            min-height: 100vh;
-            background: #080808;
-            color: white;
-            font-family: Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
+body {
+    margin: 0;
+    min-height: 100vh;
+    background: #050505;
+    color: white;
+    font-family: Arial, sans-serif;
+    padding: 20px;
+}
 
-        .panel {
-            width: 100%;
-            max-width: 600px;
-            background: #111;
-            border: 1px solid #333;
-            border-radius: 18px;
-            padding: 25px;
-            box-shadow: 0 0 30px rgba(0,0,0,.5);
-        }
+.panel {
+    max-width: 700px;
+    margin: auto;
+    background: #111;
+    border: 1px solid #333;
+    border-radius: 18px;
+    padding: 22px;
+    box-shadow: 0 0 30px rgba(0,0,0,.6);
+}
 
-        h1 {
-            margin: 0 0 5px;
-            font-size: 30px;
-        }
+h1 {
+    margin: 0 0 5px;
+    text-align: center;
+    font-size: 30px;
+}
 
-        .owner-name {
-            color: #aaa;
-            margin-bottom: 20px;
-        }
+.owner {
+    text-align: center;
+    color: #aaa;
+    margin-bottom: 25px;
+}
 
-        .tag {
-            display: inline-block;
-            background: #000;
-            color: white;
-            border: 1px solid #555;
-            border-radius: 6px;
-            padding: 5px 9px;
-            font-size: 12px;
-            font-weight: bold;
-            margin-bottom: 20px;
-        }
+.owner-tag {
+    display: inline-block;
+    background: #000;
+    color: white;
+    border: 1px solid #555;
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 11px;
+    font-weight: bold;
+    margin-top: 8px;
+}
 
-        .status {
-            padding: 12px;
-            border-radius: 8px;
-            background: #1a1a1a;
-            margin-bottom: 20px;
-            color: #bbb;
-        }
+.section {
+    background: #181818;
+    border: 1px solid #292929;
+    border-radius: 14px;
+    padding: 16px;
+    margin-top: 15px;
+}
 
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            margin-bottom: 25px;
-        }
+.section h2 {
+    margin-top: 0;
+    font-size: 18px;
+}
 
-        .stat {
-            background: #191919;
-            border-radius: 10px;
-            padding: 15px;
-            text-align: center;
-        }
+input {
+    width: 100%;
+    padding: 12px;
+    margin: 6px 0;
+    border-radius: 9px;
+    border: 1px solid #444;
+    background: #080808;
+    color: white;
+    font-size: 15px;
+}
 
-        .stat-title {
-            color: #999;
-            font-size: 13px;
-        }
+button {
+    width: 100%;
+    padding: 12px;
+    margin-top: 8px;
+    border: 0;
+    border-radius: 9px;
+    background: white;
+    color: black;
+    font-weight: bold;
+    cursor: pointer;
+}
 
-        .stat-value {
-            font-size: 22px;
-            font-weight: bold;
-            margin-top: 5px;
-        }
+button:hover {
+    opacity: .85;
+}
 
-        .inputs {
-            display: grid;
-            gap: 12px;
-        }
+.danger {
+    background: #b00020;
+    color: white;
+}
 
-        label {
-            font-size: 14px;
-            color: #bbb;
-        }
+.warning {
+    background: #5c4300;
+    color: white;
+}
 
-        input {
-            width: 100%;
-            margin-top: 5px;
-            padding: 12px;
-            background: #090909;
-            border: 1px solid #444;
-            color: white;
-            border-radius: 8px;
-            font-size: 16px;
-        }
+.status {
+    min-height: 24px;
+    margin-top: 15px;
+    text-align: center;
+    font-weight: bold;
+    color: #aaa;
+}
 
-        .buttons {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-top: 20px;
-        }
+.stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
 
-        button {
-            padding: 13px;
-            border: 0;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 15px;
-            font-weight: bold;
-        }
+.stat {
+    background: #090909;
+    border: 1px solid #292929;
+    border-radius: 9px;
+    padding: 12px;
+}
 
-        #setBtn {
-            background: white;
-            color: black;
-        }
+.stat-title {
+    color: #888;
+    font-size: 12px;
+}
 
-        #addBtn {
-            background: #333;
-            color: white;
-            border: 1px solid #555;
-        }
+.stat-value {
+    font-size: 20px;
+    font-weight: bold;
+    margin-top: 4px;
+}
 
-        button:disabled {
-            opacity: .5;
-            cursor: not-allowed;
-        }
-
-        .back {
-            display: block;
-            text-align: center;
-            margin-top: 20px;
-            color: #888;
-            text-decoration: none;
-        }
-
-        .back:hover {
-            color: white;
-        }
-
-        @media (max-width: 500px) {
-            .stats {
-                grid-template-columns: 1fr;
-            }
-
-            .buttons {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
+.back {
+    display: block;
+    text-align: center;
+    color: #aaa;
+    margin-top: 20px;
+    text-decoration: none;
+}
+</style>
 </head>
 
 <body>
@@ -170,67 +151,116 @@
 
     <h1>OWNER PANEL</h1>
 
-    <div class="owner-name">
+    <div class="owner">
         itskillerultrayt
+        <br>
+        <span class="owner-tag">FOUNDER / OWNER</span>
     </div>
 
-    <div class="tag">
-        FOUNDER / OWNER
+    <div class="section">
+        <h2>Find Player</h2>
+
+        <input
+            id="targetUsername"
+            type="text"
+            placeholder="Enter player's username"
+            autocomplete="off"
+        >
+
+        <button onclick="getPlayer()">SEARCH PLAYER</button>
     </div>
 
-    <div id="status" class="status">
-        Checking owner access...
-    </div>
+    <div class="section">
 
-    <div id="panelContent" style="display:none;">
+        <h2>Player Stats</h2>
 
         <div class="stats">
-            <div class="stat">
-                <div class="stat-title">CASH</div>
-                <div id="cashDisplay" class="stat-value">0</div>
-            </div>
 
             <div class="stat">
-                <div class="stat-title">PUNCHES</div>
-                <div id="punchesDisplay" class="stat-value">0</div>
+                <div class="stat-title">Cash</div>
+                <div class="stat-value" id="currentCash">0</div>
             </div>
 
             <div class="stat">
-                <div class="stat-title">REBIRTHS</div>
-                <div id="rebirthsDisplay" class="stat-value">0</div>
-            </div>
-        </div>
-
-        <div class="inputs">
-
-            <div>
-                <label>Cash</label>
-                <input id="cashInput" type="number" min="0" value="0">
+                <div class="stat-title">Punches</div>
+                <div class="stat-value" id="currentPunches">0</div>
             </div>
 
-            <div>
-                <label>Punches</label>
-                <input id="punchesInput" type="number" min="0" value="0">
+            <div class="stat">
+                <div class="stat-title">Rebirths</div>
+                <div class="stat-value" id="currentRebirths">0</div>
             </div>
 
-            <div>
-                <label>Rebirths</label>
-                <input id="rebirthsInput" type="number" min="0" value="0">
+            <div class="stat">
+                <div class="stat-title">Rebirth Tokens</div>
+                <div class="stat-value" id="currentTokens">0</div>
             </div>
 
-        </div>
-
-        <div class="buttons">
-            <button id="setBtn">
-                SET STATS
-            </button>
-
-            <button id="addBtn">
-                ADD TO STATS
-            </button>
         </div>
 
     </div>
+
+    <div class="section">
+
+        <h2>Set Player Stats</h2>
+
+        <input id="cash" type="number" min="0" placeholder="Cash">
+
+        <input id="punches" type="number" min="0" placeholder="Punches">
+
+        <input id="rebirths" type="number" min="0" placeholder="Rebirths">
+
+        <input id="rebirthTokens" type="number" min="0" placeholder="Rebirth Tokens">
+
+        <button onclick="setStats()">SET STATS</button>
+
+    </div>
+
+    <div class="section">
+
+        <h2>Add To Player</h2>
+
+        <input id="addCash" type="number" placeholder="Cash to add">
+
+        <input id="addPunches" type="number" placeholder="Punches to add">
+
+        <input id="addRebirths" type="number" placeholder="Rebirths to add">
+
+        <input id="addTokens" type="number" placeholder="Rebirth Tokens to add">
+
+        <button onclick="addStats()">ADD STATS</button>
+
+    </div>
+
+    <div class="section">
+
+        <h2>Reset Progress</h2>
+
+        <p style="color:#999;font-size:14px;">
+            This keeps the player's account but resets their game progress.
+        </p>
+
+        <button class="warning" onclick="resetProgress()">
+            RESET PLAYER PROGRESS
+        </button>
+
+    </div>
+
+    <div class="section">
+
+        <h2>Delete Account</h2>
+
+        <p style="color:#999;font-size:14px;">
+            This permanently removes the selected player's account.
+        </p>
+
+        <button class="danger" onclick="deletePlayer()">
+            DELETE PLAYER ACCOUNT
+        </button>
+
+    </div>
+
+    <div id="status" class="status"></div>
 
     <a class="back" href="/">
         ← Back to Game
@@ -240,216 +270,230 @@
 
 <script>
 
-const PROFILE_KEY = "boxing_clicker_profile_v2";
+const API = "/api/owner";
 const OWNER_USERNAME = "itskillerultrayt";
-const OWNER_API = "/api/owner";
-
-let profile = null;
-
-const statusBox = document.getElementById("status");
-const panelContent = document.getElementById("panelContent");
-
-const cashDisplay = document.getElementById("cashDisplay");
-const punchesDisplay = document.getElementById("punchesDisplay");
-const rebirthsDisplay = document.getElementById("rebirthsDisplay");
-
-const cashInput = document.getElementById("cashInput");
-const punchesInput = document.getElementById("punchesInput");
-const rebirthsInput = document.getElementById("rebirthsInput");
-
-const setBtn = document.getElementById("setBtn");
-const addBtn = document.getElementById("addBtn");
-
 
 function getProfile() {
-
     try {
-        const saved = localStorage.getItem(PROFILE_KEY);
-
-        if (!saved) {
-            return null;
-        }
-
-        return JSON.parse(saved);
-
-    } catch (error) {
+        return JSON.parse(
+            localStorage.getItem("boxing_clicker_profile_v2") || "null"
+        );
+    } catch {
         return null;
     }
 }
 
-
-function formatNumber(number) {
-    return Number(number || 0).toLocaleString();
+function getTargetUsername() {
+    return document.getElementById("targetUsername").value.trim();
 }
 
+function showStatus(message, success = false) {
+    const el = document.getElementById("status");
 
-function setStatus(message) {
-    statusBox.textContent = message;
+    el.textContent = message;
+    el.style.color = success ? "#7cff7c" : "#ff7777";
 }
 
+async function ownerRequest(action, extra = {}) {
 
-async function ownerRequest(action, values = {}) {
+    const profile = getProfile();
 
-    const response = await fetch(OWNER_API, {
-        method: "POST",
-
-        headers: {
-            "Content-Type": "application/json"
-        },
-
-        body: JSON.stringify({
-            action: action,
-            username: profile.username,
-            authToken: profile.authToken,
-            ...values
-        })
-    });
-
-    return await response.json();
-}
-
-
-function displayStats(data) {
-
-    cashDisplay.textContent = formatNumber(data.cash);
-    punchesDisplay.textContent = formatNumber(data.punches);
-    rebirthsDisplay.textContent = formatNumber(data.rebirths);
-
-    cashInput.value = data.cash;
-    punchesInput.value = data.punches;
-    rebirthsInput.value = data.rebirths;
-}
-
-
-async function loadOwnerStats() {
+    if (!profile || profile.username !== OWNER_USERNAME || !profile.authToken) {
+        showStatus("Owner login required.");
+        return null;
+    }
 
     try {
 
-        const data = await ownerRequest("get_stats");
+        const response = await fetch(API, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                action,
+                username: profile.username,
+                authToken: profile.authToken,
+                ...extra
+            })
+        });
 
-        if (!data.success) {
-            setStatus(data.error || "Owner access denied.");
-            return;
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            showStatus(data.error || "Request failed.");
+            return null;
         }
 
-        panelContent.style.display = "block";
-
-        displayStats(data);
-
-        setStatus("Owner access verified.");
+        return data;
 
     } catch (error) {
 
-        setStatus("Could not connect to the owner server.");
-
+        showStatus("Connection error.");
+        return null;
     }
 }
 
+async function getPlayer() {
+
+    const targetUsername = getTargetUsername();
+
+    if (!targetUsername) {
+        showStatus("Enter a player username.");
+        return;
+    }
+
+    const data = await ownerRequest("get_player", {
+        targetUsername
+    });
+
+    if (!data) return;
+
+    document.getElementById("currentCash").textContent =
+        Number(data.cash || 0).toLocaleString();
+
+    document.getElementById("currentPunches").textContent =
+        Number(data.punches || 0).toLocaleString();
+
+    document.getElementById("currentRebirths").textContent =
+        Number(data.rebirths || 0).toLocaleString();
+
+    document.getElementById("currentTokens").textContent =
+        Number(data.rebirthTokens || 0).toLocaleString();
+
+    document.getElementById("cash").value = data.cash || 0;
+    document.getElementById("punches").value = data.punches || 0;
+    document.getElementById("rebirths").value = data.rebirths || 0;
+    document.getElementById("rebirthTokens").value =
+        data.rebirthTokens || 0;
+
+    showStatus("Player loaded: " + data.username, true);
+}
 
 async function setStats() {
 
-    setBtn.disabled = true;
-    addBtn.disabled = true;
+    const targetUsername = getTargetUsername();
 
-    setStatus("Saving owner stats...");
-
-    try {
-
-        const data = await ownerRequest("set_stats", {
-
-            cash: Number(cashInput.value) || 0,
-            punches: Number(punchesInput.value) || 0,
-            rebirths: Number(rebirthsInput.value) || 0
-
-        });
-
-        if (!data.success) {
-
-            setStatus(data.error || "Could not update stats.");
-
-            return;
-        }
-
-        displayStats(data);
-
-        setStatus("Owner stats successfully updated.");
-
-    } catch (error) {
-
-        setStatus("Server connection failed.");
-
-    } finally {
-
-        setBtn.disabled = false;
-        addBtn.disabled = false;
+    if (!targetUsername) {
+        showStatus("Search a player first.");
+        return;
     }
-}
 
+    const data = await ownerRequest("set_stats", {
+
+        targetUsername,
+
+        cash: document.getElementById("cash").value,
+
+        punches: document.getElementById("punches").value,
+
+        rebirths: document.getElementById("rebirths").value,
+
+        rebirthTokens:
+            document.getElementById("rebirthTokens").value
+    });
+
+    if (!data) return;
+
+    await getPlayer();
+
+    showStatus("Player stats updated.", true);
+}
 
 async function addStats() {
 
-    setBtn.disabled = true;
-    addBtn.disabled = true;
+    const targetUsername = getTargetUsername();
 
-    setStatus("Adding stats...");
-
-    try {
-
-        const data = await ownerRequest("add_stats", {
-
-            cash: Number(cashInput.value) || 0,
-            punches: Number(punchesInput.value) || 0,
-            rebirths: Number(rebirthsInput.value) || 0
-
-        });
-
-        if (!data.success) {
-
-            setStatus(data.error || "Could not add stats.");
-
-            return;
-        }
-
-        displayStats(data);
-
-        setStatus("Stats successfully added.");
-
-    } catch (error) {
-
-        setStatus("Server connection failed.");
-
-    } finally {
-
-        setBtn.disabled = false;
-        addBtn.disabled = false;
+    if (!targetUsername) {
+        showStatus("Search a player first.");
+        return;
     }
+
+    const data = await ownerRequest("add_stats", {
+
+        targetUsername,
+
+        cash: document.getElementById("addCash").value || 0,
+
+        punches:
+            document.getElementById("addPunches").value || 0,
+
+        rebirths:
+            document.getElementById("addRebirths").value || 0,
+
+        rebirthTokens:
+            document.getElementById("addTokens").value || 0
+    });
+
+    if (!data) return;
+
+    await getPlayer();
+
+    document.getElementById("addCash").value = "";
+    document.getElementById("addPunches").value = "";
+    document.getElementById("addRebirths").value = "";
+    document.getElementById("addTokens").value = "";
+
+    showStatus("Stats added successfully.", true);
 }
 
+async function resetProgress() {
 
-setBtn.addEventListener("click", setStats);
-addBtn.addEventListener("click", addStats);
+    const targetUsername = getTargetUsername();
 
+    if (!targetUsername) {
+        showStatus("Search a player first.");
+        return;
+    }
 
-profile = getProfile();
-
-
-if (!profile) {
-
-    setStatus(
-        "No login session found. Log in to your owner account on the main game first."
+    const confirmed = confirm(
+        "Reset ALL progress for " +
+        targetUsername +
+        "?\n\nThe account will remain, but the game progress will be reset."
     );
 
-} else if (
-    profile.username !== OWNER_USERNAME ||
-    !profile.authToken
-) {
+    if (!confirmed) return;
 
-    setStatus("OWNER ACCESS DENIED.");
+    const data = await ownerRequest("reset_progress", {
+        targetUsername
+    });
 
-} else {
+    if (!data) return;
 
-    loadOwnerStats();
+    await getPlayer();
 
+    showStatus("Player progress completely reset.", true);
+}
+
+async function deletePlayer() {
+
+    const targetUsername = getTargetUsername();
+
+    if (!targetUsername) {
+        showStatus("Search a player first.");
+        return;
+    }
+
+    const confirmed = confirm(
+        "DELETE the account '" +
+        targetUsername +
+        "' permanently?\n\nThis cannot be undone."
+    );
+
+    if (!confirmed) return;
+
+    const data = await ownerRequest("delete_player", {
+        targetUsername
+    });
+
+    if (!data) return;
+
+    document.getElementById("currentCash").textContent = "0";
+    document.getElementById("currentPunches").textContent = "0";
+    document.getElementById("currentRebirths").textContent = "0";
+    document.getElementById("currentTokens").textContent = "0";
+
+    showStatus("Player account deleted.", true);
 }
 
 </script>
