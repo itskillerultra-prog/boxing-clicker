@@ -60,7 +60,7 @@ export async function onRequest(context) {
         // --------------------------------
         // GET A PLAYER
         // --------------------------------
-        if (action === "get_player") {
+        if (action === "get_player" || action === "get_stats") {
             const targetUsername = String(body.targetUsername || "").trim();
 
             if (!targetUsername) {
