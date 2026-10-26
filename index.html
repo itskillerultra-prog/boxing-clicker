@@ -8,7 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
+        <style>
         @import url('https://fonts.googleapis.com/css2?family=Teko:wght@600;700&family=Inter:wght@400;600;800&display=swap');
 
         body {
@@ -54,6 +54,18 @@
             body.low-performance-mode * { animation-duration: 0.01ms !important; transition-duration: 0.08s !important; }
         body.low-performance-mode .animate-pulse { animation: none !important; }
         body.low-performance-mode .shadow-2xl, body.low-performance-mode .shadow-lg, body.low-performance-mode .shadow-xl { box-shadow: none !important; }
+        body.low-performance-mode .backdrop-blur-md, body.low-performance-mode .backdrop-blur-sm { backdrop-filter: none !important; }
+        body.low-performance-mode .animate-bounce, body.low-performance-mode .animate-pulse { animation: none !important; }
+        body.low-performance-mode #frenzy-banner { display: none !important; }
+        @media (max-width: 700px) {
+            #shop-container { min-height: 0; }
+            #settings-modal > div, #username-modal > div, #leaderboard-modal > div { max-height: 92vh; overflow-y: auto; }
+            #username-modal > div { width: min(100%, 430px); }
+            #shop-container { overscroll-behavior: contain; }
+        }
+        @media (min-width: 701px) and (max-width: 1100px) {
+            #game-app aside { width: 360px !important; }
+        }
 </style>
 </head>
 <body class="h-screen w-screen flex flex-col justify-between overflow-hidden bg-slate-950">
@@ -138,20 +150,20 @@
         <!-- RIGHT SHOP PANEL -->
         <aside class="w-full md:w-96 h-1/2 md:h-full bg-slate-900/95 border-t md:border-t-0 md:border-l border-slate-800 flex flex-col z-20">
             <!-- SHOP NAVIGATION -->
-            <div class="flex bg-slate-950 p-1.5 border-b border-slate-800 gap-1">
-                <button id="tab-power" class="flex-1 py-2 text-center font-arcade text-base tracking-wider font-bold rounded-xl bg-blue-600 text-white transition flex items-center justify-center gap-1.5 shadow-lg shadow-blue-600/30">
+            <div class="flex bg-slate-950 p-1.5 border-b border-slate-800 gap-1 overflow-x-auto custom-scrollbar">
+                <button id="tab-power" class="flex-1 min-w-[82px] py-2 text-center font-arcade text-sm tracking-wider font-bold rounded-xl bg-blue-600 text-white transition flex items-center justify-center gap-1.5 shadow-lg shadow-blue-600/30">
                     <i class="fas fa-hand-fist"></i> POWER
                 </button>
-                <button id="tab-auto" class="flex-1 py-2 text-center font-arcade text-base tracking-wider font-bold rounded-xl text-slate-400 hover:text-white transition flex items-center justify-center gap-1.5">
+                <button id="tab-auto" class="flex-1 min-w-[82px] py-2 text-center font-arcade text-sm tracking-wider font-bold rounded-xl text-slate-400 hover:text-white transition flex items-center justify-center gap-1.5">
                     <i class="fas fa-robot"></i> AUTO
                 </button>
-                <button id="tab-boost" class="flex-1 py-2 text-center font-arcade text-base tracking-wider font-bold rounded-xl text-slate-400 hover:text-white transition flex items-center justify-center gap-1.5">
+                <button id="tab-boost" class="flex-1 min-w-[82px] py-2 text-center font-arcade text-sm tracking-wider font-bold rounded-xl text-slate-400 hover:text-white transition flex items-center justify-center gap-1.5">
                     <i class="fas fa-bolt"></i> BOOST
                 </button>
-                <button id="tab-tokens" class="flex-1 py-2 text-center font-arcade text-base tracking-wider font-bold rounded-xl text-slate-400 hover:text-white transition flex items-center justify-center gap-1.5">
+                <button id="tab-tokens" class="flex-1 min-w-[82px] py-2 text-center font-arcade text-sm tracking-wider font-bold rounded-xl text-slate-400 hover:text-white transition flex items-center justify-center gap-1.5">
                     <i class="fas fa-coins"></i> TOKENS
                 </button>
-                <button id="tab-bags" class="flex-1 py-2 text-center font-arcade text-base tracking-wider font-bold rounded-xl text-slate-400 hover:text-white transition flex items-center justify-center gap-1.5">
+                <button id="tab-bags" class="flex-1 min-w-[82px] py-2 text-center font-arcade text-sm tracking-wider font-bold rounded-xl text-slate-400 hover:text-white transition flex items-center justify-center gap-1.5">
                     <i class="fas fa-shield-halved"></i> SKINS
                 </button>
             </div>
@@ -196,7 +208,11 @@
     <div id="username-modal" class="fixed inset-0 bg-black/95 z-[100] flex items-center justify-center p-4 hidden">
         <div class="bg-slate-900 border border-slate-700 w-full max-w-md rounded-2xl p-6 shadow-2xl space-y-4">
             <h3 id="auth-title" class="font-arcade text-3xl text-white font-bold">ACCOUNT LOGIN</h3>
-            <p id="auth-subtitle" class="text-sm text-slate-400">Enter your username, check it, then use your password to log in on any device.</p>
+            <p id="auth-subtitle" class="text-sm text-slate-400">Choose Login or Sign Up. Your account works on other devices after you sign in.</p>
+            <div id="auth-mode-buttons" class="grid grid-cols-2 gap-2">
+                <button id="btn-auth-login" class="px-3 py-2 rounded-xl bg-blue-600 text-white text-xs font-black">LOGIN</button>
+                <button id="btn-auth-signup" class="px-3 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-black">SIGN UP</button>
+            </div>
             <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Username</label>
             <input id="username-input" maxlength="16" autocomplete="username" class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-700 text-white outline-none focus:border-blue-500" placeholder="Enter username">
             <button id="btn-check-username" class="w-full px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold">CHECK USERNAME</button>
@@ -205,12 +221,7 @@
                 <input id="password-input" type="password" autocomplete="new-password" class="mt-1 w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-700 text-white outline-none focus:border-blue-500" placeholder="Minimum 4 characters"></div>
                 <div id="confirm-password-wrap"><label class="text-xs font-bold uppercase tracking-wider text-slate-500">Confirm Password</label>
                 <input id="confirm-password-input" type="password" autocomplete="new-password" class="mt-1 w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-700 text-white outline-none focus:border-blue-500" placeholder="Confirm password"></div>
-                <div id="recovery-wrap" class="space-y-2 border-t border-slate-800 pt-3">
-                    <p class="text-xs text-amber-300 font-bold">Recovery is optional, but recommended.</p>
-                    <p class="text-[11px] text-slate-400">It's your choice whether to add an email or phone number. If you don't add one, you may lose the account if you forget your password.</p>
-                    <input id="email-input" type="email" autocomplete="email" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white outline-none focus:border-blue-500" placeholder="Email (optional)">
-                    <input id="phone-input" type="tel" autocomplete="tel" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white outline-none focus:border-blue-500" placeholder="Phone number (optional)">
-                </div>
+                <p id="signup-warning" class="text-[10px] text-amber-300">Keep your username and password safe. There is no phone/email recovery in this version.</p>
                 <p class="text-[10px] text-slate-500">If your browser supports Google Password Manager, it may offer to save this password after account creation.</p>
                 <button id="btn-auth-submit" class="w-full px-4 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold">CREATE ACCOUNT</button>
                 <button id="btn-forgot-password" type="button" class="w-full text-xs text-blue-400 hover:text-blue-300 font-bold hidden">FORGOT PASSWORD / RESET</button>
@@ -223,9 +234,41 @@
     <!-- PASSWORD RESET MODAL -->
     <div id="password-reset-modal" class="fixed inset-0 bg-black/95 z-[110] flex items-center justify-center p-4 hidden">
         <div class="bg-slate-900 border border-slate-700 w-full max-w-md rounded-2xl p-6 shadow-2xl space-y-4">
-            <h3 class="font-arcade text-2xl text-blue-300 font-bold">RESET PASSWORD</h3>
-            <p class="text-xs text-slate-400">For security, a forgotten password can only be reset after a verified recovery method is connected. Your email/phone is optional when creating the account, but without one you may lose the account if you forget the password.</p>
-            <button id="btn-close-reset-password" class="w-full px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold">CLOSE</button>
+            <div class="flex justify-between items-center">
+                <h3 class="font-arcade text-2xl text-blue-300 font-bold">RESET PASSWORD</h3>
+                <button id="btn-close-reset-password" class="text-slate-400 hover:text-white text-xl"><i class="fas fa-xmark"></i></button>
+            </div>
+            <p class="text-xs text-slate-400">To protect your account, enter your current password and choose a new one. This works without phone or email.</p>
+            <input id="reset-current-password" type="password" autocomplete="current-password" class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-700 text-white outline-none focus:border-blue-500" placeholder="Current password">
+            <input id="reset-new-password" type="password" autocomplete="new-password" class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-700 text-white outline-none focus:border-blue-500" placeholder="New password (minimum 4 characters)">
+            <input id="reset-confirm-password" type="password" autocomplete="new-password" class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-700 text-white outline-none focus:border-blue-500" placeholder="Confirm new password">
+            <p id="reset-password-error" class="text-xs text-red-400 hidden"></p>
+            <button id="btn-do-reset-password" class="w-full px-4 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold">RESET PASSWORD</button>
+            <p class="text-[10px] text-slate-500">If you completely forget the current password, there is no automatic recovery method in this version.</p>
+        </div>
+    </div>
+
+    <!-- DELETE PROFILE MODAL -->
+    <div id="delete-profile-modal" class="fixed inset-0 bg-black/95 z-[120] flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-red-800/70 w-full max-w-md rounded-2xl p-6 shadow-2xl space-y-4">
+            <div class="flex justify-between items-center">
+                <h3 class="font-arcade text-2xl text-red-300 font-bold">DELETE PROFILE</h3>
+                <button id="btn-close-delete-profile" class="text-slate-400 hover:text-white text-xl"><i class="fas fa-xmark"></i></button>
+            </div>
+            <p class="text-sm text-white font-bold">Are you sure you want to delete this profile?</p>
+            <p class="text-xs text-red-300">Your progress will be lost. This permanently deletes the account and its saved game progress.</p>
+            <div id="delete-name-step" class="space-y-3">
+                <p class="text-xs text-slate-400">Type your exact profile name below. It must match your username exactly.</p>
+                <div class="rounded-xl bg-slate-950 border border-slate-800 p-3 text-center"><span id="delete-expected-name" class="font-arcade text-lg text-yellow-400 break-all">Player</span></div>
+                <input id="delete-profile-name" autocomplete="off" class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-700 text-white outline-none focus:border-red-500" placeholder="Type your exact username">
+                <p id="delete-profile-error" class="text-xs text-red-400 hidden"></p>
+                <button id="btn-delete-profile-check" class="w-full px-4 py-3 rounded-xl bg-red-700 hover:bg-red-600 text-white font-black">DELETE PROFILE</button>
+            </div>
+            <div id="delete-confirm-step" class="hidden space-y-3">
+                <div class="rounded-xl border border-red-800 bg-red-950/40 p-4 text-center space-y-2"><p class="text-lg font-black text-red-200">Are you sure?</p><p class="text-xs text-red-300">This cannot be undone.</p></div>
+                <button id="btn-delete-profile-final" class="w-full px-4 py-3 rounded-xl bg-red-700 hover:bg-red-600 text-white font-black">YES, I AM SURE</button>
+                <button id="btn-delete-profile-back" class="w-full px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-sm font-bold">GO BACK</button>
+            </div>
         </div>
     </div>
 
@@ -328,6 +371,8 @@
                     <div><div class="font-semibold text-sm">Username</div><div id="settings-username" class="text-xs text-slate-500">Not set</div><div id="settings-rank" class="text-[10px] text-purple-400">Rank: Rookie</div></div>
                     <button id="btn-change-username" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-white">CHANGE</button>
                 </div>
+                <button id="btn-settings-password" class="w-full px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold"><i class="fas fa-key mr-1"></i> RESET / CHANGE PASSWORD</button>
+                <button id="btn-delete-profile" class="w-full px-4 py-2 rounded-xl bg-red-950/50 hover:bg-red-900/70 border border-red-800/60 text-red-300 text-xs font-bold"><i class="fas fa-user-xmark mr-1"></i> DELETE PROFILE</button>
                 <button id="btn-settings-leaderboard" class="w-full px-4 py-2 rounded-xl bg-yellow-600 hover:bg-yellow-500 text-white text-xs font-bold"><i class="fas fa-trophy mr-1"></i> Open Leaderboard</button>
             </div>
 
@@ -343,6 +388,7 @@
         </div>
     </div>
 
+    
     <!-- JAVASCRIPT ENGINE -->
     <script>
         /**
@@ -721,7 +767,8 @@
         window.addEventListener('resize', resizeCanvas);
 
         // Stats Calculation Engine
-        function calculateStats() {
+        let lastHudUiRefresh = 0;
+        function calculateStats(forceUi = false) {
             let baseCpc = 1;
             let baseCps = 0;
 
@@ -757,25 +804,25 @@
             gameState.cpcMultiplier = baseCpc * boostedSkinMult * boostedFrenzyMult * boostedRebirthMult * tokenCashMult * tokenPunchMult * tokenCashSurge * tokenBossDamage * tokenGoldenTouch * tokenEternalPower * tokenTitanMastery * permanentBoostMult;
             gameState.cpsMultiplier = baseCps * boostedSkinMult * boostedFrenzyMult * boostedRebirthMult * tokenCashMult * tokenAutoMult * tokenCashSurge * tokenGoldenTouch * tokenEternalPower * tokenTitanMastery * permanentBoostMult;
 
-            // Render stats on HUD
-            const formattedCash = `$${Math.floor(gameState.cash).toLocaleString()}`;
-            cashDisplayMobile.textContent = formattedCash;
-            cashDisplayDesktop.textContent = formattedCash;
-
-            cpcDisplayMobile.textContent = `+$${Math.floor(gameState.cpcMultiplier).toLocaleString()}`;
-            cpcDisplayDesktop.textContent = `+$${Math.floor(gameState.cpcMultiplier).toLocaleString()}`;
-
-            cpsDisplayMobile.textContent = `${Math.floor(gameState.cpsMultiplier).toLocaleString()}/s`;
-            cpsDisplayDesktop.textContent = `${Math.floor(gameState.cpsMultiplier).toLocaleString()}/s`;
-
-            // CRITICAL FIX: Instantly refresh shop UI buttons on every state update
+            // Throttle DOM work so very high CPS does not rebuild shop buttons on every punch.
+            const now = performance.now();
+            if (!forceUi && now - lastHudUiRefresh < 100) return;
+            lastHudUiRefresh = now;
+            cashDisplayMobile.textContent = `$${formatNumber(gameState.cash)}`;
+            cashDisplayDesktop.textContent = `$${formatNumber(gameState.cash)}`;
+            cpcDisplayMobile.textContent = `+$${formatNumber(gameState.cpcMultiplier)}`;
+            cpcDisplayDesktop.textContent = `+$${formatNumber(gameState.cpcMultiplier)}`;
+            cpsDisplayMobile.textContent = `${formatNumber(gameState.cpsMultiplier)}/s`;
+            cpsDisplayDesktop.textContent = `${formatNumber(gameState.cpsMultiplier)}/s`;
             updateShopItemStates();
             updateRebirthUI();
         }
 
-        function triggerHit(hitX, hitY, isAuto = false) {
-            initAudio();
-            playSound('punch');
+        function triggerHit(hitX, hitY, isAuto = false, skipUiSave = false) {
+            if (!isAuto || !gameState.lowGraphics) {
+                initAudio();
+                playSound('punch');
+            }
 
             // Crit Calculation
             const critLevel = gameState.upgrades.critMultiplier.count;
@@ -793,8 +840,10 @@
             bag.squishX = 1.25;
             bag.squishY = 0.82;
 
-            spawnFloatingText(hitX || bag.x, hitY || bag.y, `+$${Math.floor(earnings)}`, isCrit ? '#EF4444' : '#FBBF24');
-            spawnSparks(hitX || bag.x, hitY || bag.y, isAuto ? 2 : 6);
+            if (!gameState.lowGraphics || !isAuto) {
+                spawnFloatingText(hitX || bag.x, hitY || bag.y, `+$${Math.floor(earnings)}`, isCrit ? '#EF4444' : '#FBBF24');
+                spawnSparks(hitX || bag.x, hitY || bag.y, isAuto ? 1 : 6);
+            }
 
             // Glove punch triggers
             if (dir > 0) {
@@ -820,8 +869,11 @@
                 if (gameState.frenzyMeter >= 100) activateFrenzy();
             }
 
-            calculateStats();
-            saveGame();
+            if (!skipUiSave) {
+                calculateStats();
+                updateRebirthUI();
+                saveGame();
+            }
         }
 
         function activateFrenzy() {
@@ -859,8 +911,14 @@
         // Game Loop
         let lastTime = performance.now();
         let autoPunchAccumulator = 0;
+        let lastAutoSaveAt = 0;
 
+        let lowFrameSkip = false;
         function updateAndRender(now) {
+            if (gameState.lowGraphics) {
+                lowFrameSkip = !lowFrameSkip;
+                if (lowFrameSkip) { requestAnimationFrame(updateAndRender); return; }
+            }
             const dt = Math.min((now - lastTime) / 1000, 0.1);
             lastTime = now;
 
@@ -874,8 +932,11 @@
                     for (let i = 0; i < visualHits; i++) {
                         const offsetX = (Math.random() - 0.5) * 40;
                         const offsetY = (Math.random() - 0.5) * 80;
-                        triggerHit(bag.x + offsetX, bag.y + offsetY, true);
+                        triggerHit(bag.x + offsetX, bag.y + offsetY, true, true);
                     }
+                    // Batch UI work. Save at most once per second so high CPS never hammers localStorage/network.
+                    calculateStats();
+                    if (now - lastAutoSaveAt > 1000) { lastAutoSaveAt = now; saveGame(); }
                 }
             }
 
@@ -1098,7 +1159,7 @@
 
             document.getElementById('rebirth-modal').classList.add('hidden');
             playSound('upgrade');
-            calculateStats();
+            calculateStats(true);
             renderShop();
             saveGame();
             updateRebirthUI();
@@ -1152,6 +1213,15 @@
                     shopContainer.appendChild(card);
                 }
             } else if (currentTab === 'tokens') {
+                for (const key in gameState.tokenShop) {
+                    const item = gameState.tokenShop[key];
+                    const card = document.createElement('div');
+                    card.id = `token-card-${key}`;
+                    card.className = 'p-3 rounded-xl border flex items-center justify-between transition bg-slate-900/80 border-slate-800';
+                    card.innerHTML = `<div class="flex items-center gap-3 min-w-0"><div class="w-11 h-11 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-center text-purple-400 text-lg flex-shrink-0"><i class="fas ${item.icon}"></i></div><div class="min-w-0"><h4 class="font-bold text-sm text-slate-100">${item.name} <span id="token-count-${key}" class="text-[10px] bg-purple-950 text-purple-300 border border-purple-800/60 px-1.5 py-0.5 rounded-md">x${item.count}/${item.max}</span></h4><p class="text-xs text-slate-400">${item.desc}</p></div></div><button id="token-btn-${key}" class="min-w-[82px] px-2 py-2 rounded-xl text-xs font-bold border border-purple-800/60 bg-purple-950/70 text-purple-200"></button>`;
+                    card.querySelector(`#token-btn-${key}`).addEventListener('click', () => buyTokenUpgrade(key));
+                    shopContainer.appendChild(card);
+                }
                 updateTokenShopStates();
             } else if (currentTab === 'bags') {
                 for (const key in gameState.bags) {
@@ -1205,16 +1275,6 @@
                     }
                 }
             } else if (currentTab === 'tokens') {
-                for (const key in gameState.tokenShop) {
-                    const item = gameState.tokenShop[key];
-                    const maxed = item.count >= item.max;
-                    const canAfford = gameState.rebirthTokens >= item.price && !maxed;
-                    const card = document.createElement('div');
-                    card.className = 'p-3 rounded-xl border flex items-center justify-between transition bg-slate-900/80 border-slate-800';
-                    card.innerHTML = `<div class="flex items-center gap-3 min-w-0"><div class="w-11 h-11 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-center text-purple-400 text-lg flex-shrink-0"><i class="fas ${item.icon}"></i></div><div class="min-w-0"><h4 class="font-bold text-sm text-slate-100">${item.name} <span class="text-[10px] bg-purple-950 text-purple-300 border border-purple-800/60 px-1.5 py-0.5 rounded-md">x${item.count}/${item.max}</span></h4><p class="text-xs text-slate-400">${item.desc}</p></div></div><button id="token-btn-${key}" class="min-w-[82px] px-2 py-2 rounded-xl text-xs font-bold border border-purple-800/60 bg-purple-950/70 text-purple-200">${maxed ? 'MAXED' : `<span class="block text-[9px] uppercase text-purple-400">Cost</span><span class="block text-sm font-black">${item.price}</span><span class="block text-[9px] uppercase text-purple-300">TOKENS</span>`}</button>`;
-                    card.querySelector(`#token-btn-${key}`).addEventListener('click', () => buyTokenUpgrade(key));
-                    shopContainer.appendChild(card);
-                }
                 updateTokenShopStates();
             } else if (currentTab === 'bags') {
                 for (const key in gameState.bags) {
@@ -1290,12 +1350,18 @@
                 const item = gameState.tokenShop[key];
                 const btn = document.getElementById(`token-btn-${key}`);
                 if (!btn) continue;
+                const count=document.getElementById(`token-count-${key}`);
+                if(count) count.textContent=`x${item.count}/${item.max}`;
                 if (item.count >= item.max) {
-                    btn.className = 'px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-950 text-emerald-400 border border-emerald-800';
-                } else if (gameState.rebirthTokens >= item.price) {
-                    btn.className = 'px-3 py-1.5 rounded-xl text-xs font-bold bg-purple-600 hover:bg-purple-500 text-white cursor-pointer';
+                    btn.innerHTML='MAXED';
+                    btn.className = 'min-w-[82px] px-2 py-2 rounded-xl text-xs font-bold bg-emerald-950 text-emerald-400 border border-emerald-800';
                 } else {
-                    btn.className = 'px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800 text-slate-500 border border-slate-800 cursor-not-allowed';
+                    btn.innerHTML=`<span class="block text-[9px] uppercase opacity-70">COST</span><span class="block text-sm font-black">${item.price}</span><span class="block text-[9px] uppercase opacity-70">TOKENS</span>`;
+                    if (gameState.rebirthTokens >= item.price) {
+                        btn.className = 'min-w-[82px] px-2 py-2 rounded-xl text-xs font-bold bg-purple-600 hover:bg-purple-500 text-white cursor-pointer';
+                    } else {
+                        btn.className = 'min-w-[82px] px-2 py-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-500 border border-slate-800 cursor-not-allowed';
+                    }
                 }
             }
         }
@@ -1388,15 +1454,27 @@
         const ONLINE_LEADERBOARD_API = '/api/leaderboard';
         let authMode = 'auto';
 
+        // Large-number formatter for idle-game style values, from K/M/B/T through very large tiers.
         function formatNumber(value) {
-            const n = Number(value) || 0, a = Math.abs(n);
-            const units = [[1e18,'E'],[1e15,'Q'],[1e12,'T'],[1e9,'B'],[1e6,'M'],[1e3,'K']];
-            for (const [v,s] of units) if (a >= v) {
-                const x = n / v;
-                const d = Math.abs(x) >= 100 ? 0 : Math.abs(x) >= 10 ? 1 : 2;
-                return x.toFixed(d).replace(/\.0+$|(\.\d*[1-9])0+$/,'$1') + s;
-            }
-            return Math.floor(n).toLocaleString();
+            const n = Number(value);
+            if (!Number.isFinite(n)) return n > 0 ? '∞' : '0';
+            const a = Math.abs(n);
+            if (a < 1000) return Math.floor(n).toLocaleString();
+            const suffixes = [
+                'K','M','B','T','Qa','Qi','Sx','Sp','Oc','No','Dc','Ud','Dd','Td','Qad','Qid','Sxd','Spd','Ocd','Nod','Vg',
+                'UVg','DVg','TVg','QaVg','QiVg','SxVg','SpVg','OcVg','NoVg','VgF','VgT','VgP','VgE','VgS','VgO','VgN',
+                'VgD','VgU','VgDD','VgTD','VgQD','VgQID','VgSXD','VgSPD','VgOCD','VgNOD','VgVG','VgUVG','VgDVG','VgTVG',
+                'VgQAVG','VgQIVG','VgSXVG','VgSPVG','VgOCVG','VgNOVG','VgTGVG','VgQNG','VgQIG','VgSXG','VgSPG','VgOCG','VgNOG',
+                'VgVG2','VgVG3','VgVG4','VgVG5','VgVG6','VgVG7','VgVG8','VgVG9','VgVG10','VgVG11','VgVG12','VgVG13','VgVG14',
+                'VgVG15','VgVG16','VgVG17','VgVG18','VgVG19','VgVG20','VgVG21','VgVG22','VgVG23','VgVG24','VgVG25','VgVG26',
+                'VgVG27','VgVG28','VgVG29','VgVG30','VgVG31','VgVG32','VgVG33','VgVG34','VgVG35','VgVG36','VgVG37','VgVG38'
+            ];
+            const group = Math.floor(Math.log10(a) / 3);
+            const index = Math.min(Math.max(group - 1, 0), suffixes.length - 1);
+            const scaled = n / Math.pow(1000, index + 1);
+            const absScaled = Math.abs(scaled);
+            const decimals = absScaled >= 100 ? 0 : absScaled >= 10 ? 1 : 2;
+            return scaled.toFixed(decimals).replace(/\.0+$|(\.\d*[1-9])0+$/,'$1') + suffixes[index];
         }
         function getProfile() {
             try { return JSON.parse(localStorage.getItem(PROFILE_KEY) || 'null'); } catch(e) { return null; }
@@ -1416,29 +1494,35 @@
             const rankEl = document.getElementById('settings-rank');
             if (rankEl) rankEl.textContent = `Rank: ${getRebirthTitle ? getRebirthTitle() : 'Rookie'}`;
         }
-        function showAuthFields() {
+        let authScreenMode = 'login';
+        let usernameChangeMode = false;
+        function setAuthScreen(mode) {
+            authScreenMode = mode;
+            usernameChangeMode = false;
+            const signup = mode === 'signup';
+            document.getElementById('btn-auth-login').className = `px-3 py-2 rounded-xl ${!signup ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-300'} text-xs font-black`;
+            document.getElementById('btn-auth-signup').className = `px-3 py-2 rounded-xl ${signup ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-300'} text-xs font-black`;
+            document.getElementById('auth-title').textContent = signup ? 'CREATE ACCOUNT' : 'LOGIN';
+            document.getElementById('auth-subtitle').textContent = signup ? 'Create your account once, then use the same username and password on another device.' : 'Enter your username and password to continue.';
             document.getElementById('auth-password-area').classList.remove('hidden');
+            document.getElementById('password-input').setAttribute('autocomplete', signup ? 'new-password' : 'current-password');
+            document.getElementById('confirm-password-wrap').classList.toggle('hidden', !signup);
+            document.getElementById('signup-warning').classList.toggle('hidden', !signup);
+            document.getElementById('btn-auth-submit').textContent = signup ? 'CREATE ACCOUNT' : 'LOGIN';
+            document.getElementById('btn-forgot-password').classList.toggle('hidden', signup);
+            document.getElementById('auth-suggestions').classList.add('hidden');
             document.getElementById('username-error').classList.add('hidden');
+            document.getElementById('auth-mode-buttons').classList.remove('hidden');
         }
+        function showAuthFields() { document.getElementById('auth-password-area').classList.remove('hidden'); document.getElementById('username-error').classList.add('hidden'); }
         function showSuggestions(list) {
             const wrap = document.getElementById('auth-suggestions');
-            const box = document.getElementById('username-suggestion-list');
-            box.innerHTML = '';
+            const box = document.getElementById('username-suggestion-list'); box.innerHTML = '';
             (list || []).slice(0, 6).forEach(name => {
                 const b = document.createElement('button');
                 b.className = 'px-2 py-2 rounded-lg bg-slate-800 hover:bg-blue-700 text-white text-xs font-bold border border-slate-700';
                 b.textContent = name;
-                b.onclick = () => {
-                    document.getElementById('username-input').value = name;
-                    authMode = 'register';
-                    document.getElementById('auth-title').textContent = 'CREATE ACCOUNT';
-                    document.getElementById('confirm-password-wrap').classList.remove('hidden');
-                    document.getElementById('btn-auth-submit').textContent = 'CREATE ACCOUNT';
-                    document.getElementById('btn-forgot-password').classList.add('hidden');
-                    document.getElementById('recovery-wrap').classList.remove('hidden');
-                    showAuthFields();
-                    wrap.classList.add('hidden');
-                };
+                b.onclick = () => { document.getElementById('username-input').value = name; wrap.classList.add('hidden'); showAuthFields(); };
                 box.appendChild(b);
             });
             wrap.classList.toggle('hidden', !(list && list.length));
@@ -1446,38 +1530,13 @@
         async function checkUsername() {
             const name = document.getElementById('username-input').value.trim();
             const error = document.getElementById('username-error');
-            if (!/^[A-Za-z0-9 _-]{2,16}$/.test(name)) {
-                error.textContent = 'Use 2–16 letters, numbers, spaces, _ or - only.';
-                error.classList.remove('hidden'); return;
-            }
+            if (!/^[A-Za-z0-9 _-]{2,16}$/.test(name)) { error.textContent = 'Use 2–16 letters, numbers, spaces, _ or - only.'; error.classList.remove('hidden'); return; }
             try {
-                const r = await fetch(`${ONLINE_LEADERBOARD_API}?check=${encodeURIComponent(name)}`);
-                const data = await r.json();
-                error.classList.add('hidden');
-                showAuthFields();
-                if (data.exists) {
-                    authMode = 'login';
-                    document.getElementById('auth-title').textContent = 'LOGIN';
-                    document.getElementById('auth-subtitle').textContent = 'Username found. Enter the password for this account.';
-                    document.getElementById('confirm-password-wrap').classList.add('hidden');
-                    document.getElementById('btn-auth-submit').textContent = 'LOGIN';
-                    document.getElementById('btn-forgot-password').classList.remove('hidden');
-                    document.getElementById('recovery-wrap').classList.add('hidden');
-                    showSuggestions(data.suggestions || []);
-                } else {
-                    authMode = 'register';
-                    document.getElementById('auth-title').textContent = 'CREATE ACCOUNT';
-                    document.getElementById('auth-subtitle').textContent = 'Username is available. Create a password for this account.';
-                    document.getElementById('confirm-password-wrap').classList.remove('hidden');
-                    document.getElementById('btn-auth-submit').textContent = 'CREATE ACCOUNT';
-                    document.getElementById('btn-forgot-password').classList.add('hidden');
-                    document.getElementById('recovery-wrap').classList.remove('hidden');
-                    document.getElementById('auth-suggestions').classList.add('hidden');
-                }
-            } catch(e) {
-                error.textContent = 'Could not check username. Online account server is unavailable.';
-                error.classList.remove('hidden');
-            }
+                const r = await fetch(`${ONLINE_LEADERBOARD_API}?check=${encodeURIComponent(name)}`); const data = await r.json();
+                if (data.exists && authScreenMode === 'signup') { error.textContent = 'That username is taken. Pick one of the suggestions below.'; error.classList.remove('hidden'); showSuggestions(data.suggestions || []); return; }
+                if (!data.exists && authScreenMode === 'login') { error.textContent = 'Account not found. Switch to Sign Up to create it.'; error.classList.remove('hidden'); return; }
+                showAuthFields(); error.classList.add('hidden'); document.getElementById('auth-suggestions').classList.add('hidden');
+            } catch(e) { error.textContent = 'Could not check the account server.'; error.classList.remove('hidden'); }
         }
         function applyRemoteGameState(remote) {
             if (!remote || typeof remote !== 'object') return;
@@ -1503,66 +1562,123 @@
             const password = document.getElementById('password-input').value;
             const confirm = document.getElementById('confirm-password-input').value;
             const error = document.getElementById('username-error');
+            if (!/^[A-Za-z0-9 _-]{2,16}$/.test(name)) { error.textContent = 'Enter a valid username first.'; error.classList.remove('hidden'); return; }
             if (password.length < 4) { error.textContent = 'Password must be at least 4 characters.'; error.classList.remove('hidden'); return; }
-            if (authMode === 'register' && password !== confirm) { error.textContent = 'Passwords do not match.'; error.classList.remove('hidden'); return; }
-            const email = document.getElementById('email-input').value.trim();
-            const phone = document.getElementById('phone-input').value.trim();
-            if (authMode === 'register' && !email && !phone) {
-                const ok = confirm('Are you sure you want to create this ID without an email or phone recovery method? If you forget the password, the account may be lost.');
-                if (!ok) return;
-            }
-            const btn = document.getElementById('btn-auth-submit');
-            btn.disabled = true; btn.textContent = 'PLEASE WAIT...'; error.classList.add('hidden');
+            if (authScreenMode === 'signup' && password !== confirm) { error.textContent = 'Passwords do not match.'; error.classList.remove('hidden'); return; }
+            const btn = document.getElementById('btn-auth-submit'); btn.disabled = true; btn.textContent = 'PLEASE WAIT...'; error.classList.add('hidden');
             try {
-                const r = await fetch(ONLINE_LEADERBOARD_API, {
-                    method: 'POST', headers: {'Content-Type':'application/json'},
-                    body: JSON.stringify({action: authMode === 'login' ? 'login' : 'register', username:name, password, confirmPassword:confirm, email, phone})
-                });
+                const r = await fetch(ONLINE_LEADERBOARD_API, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action:authScreenMode==='signup'?'register':'login',username:name,password,confirmPassword:confirm}) });
                 const data = await r.json();
-                if (!r.ok || !data.success) {
-                    if (data.suggestions) showSuggestions(data.suggestions);
-                    error.textContent = data.error || 'Unable to continue.';
-                    error.classList.remove('hidden'); return;
-                }
+                if (!r.ok || !data.success) { if (data.suggestions) showSuggestions(data.suggestions); error.textContent = data.error || 'Unable to continue.'; error.classList.remove('hidden'); return; }
                 saveProfile(data.username || name, data.playerId, data.authToken);
-                if (authMode === 'login' && data.gameState) applyRemoteGameState(data.gameState);
-                document.getElementById('username-modal').classList.add('hidden');
-                updateLocalLeaderboard();
-                syncOnlineLeaderboard();
-            } catch(e) {
-                error.textContent = 'Could not connect to the account server.';
-                error.classList.remove('hidden');
-            } finally {
-                btn.disabled = false; btn.textContent = authMode === 'login' ? 'LOGIN' : 'CREATE ACCOUNT';
-            }
+                if (data.gameState) applyRemoteGameState(data.gameState);
+                document.getElementById('username-modal').classList.add('hidden'); updateLocalLeaderboard(); scheduleOnlineSync();
+            } catch(e) { error.textContent = 'Could not connect to the account server.'; error.classList.remove('hidden'); }
+            finally { btn.disabled=false; btn.textContent=authScreenMode==='signup'?'CREATE ACCOUNT':'LOGIN'; }
         }
-        function openUsernameModal() {
-            const modal = document.getElementById('username-modal');
-            const p = getProfile();
+        function openUsernameModal(mode='login') {
+            const modal=document.getElementById('username-modal'), p=getProfile();
+            usernameChangeMode = mode === 'change';
             document.getElementById('username-input').value = p?.username || '';
-            document.getElementById('password-input').value = '';
-            document.getElementById('confirm-password-input').value = '';
-            document.getElementById('email-input').value = '';
-            document.getElementById('phone-input').value = '';
-            document.getElementById('auth-password-area').classList.add('hidden');
-            document.getElementById('auth-suggestions').classList.add('hidden');
-            document.getElementById('username-error').classList.add('hidden');
-            document.getElementById('auth-title').textContent = 'ACCOUNT LOGIN';
-            document.getElementById('auth-subtitle').textContent = 'Enter your username, check it, then use your password to log in on any device.';
-            authMode = 'auto';
-            modal.classList.remove('hidden');
-            setTimeout(() => document.getElementById('username-input').focus(), 50);
+            document.getElementById('password-input').value=''; document.getElementById('confirm-password-input').value='';
+            if (usernameChangeMode) {
+                authScreenMode='change'; document.getElementById('auth-mode-buttons').classList.add('hidden'); document.getElementById('auth-title').textContent='CHANGE USERNAME';
+                document.getElementById('auth-subtitle').textContent='Choose a new available username.';
+                document.getElementById('auth-password-area').classList.add('hidden'); document.getElementById('btn-check-username').textContent='CHECK NEW USERNAME';
+                document.getElementById('auth-suggestions').classList.add('hidden');
+                const btn=document.getElementById('btn-auth-submit'); btn.textContent='SAVE USERNAME'; btn.classList.remove('hidden');
+            } else {
+                document.getElementById('btn-check-username').textContent='CHECK USERNAME'; setAuthScreen(mode); document.getElementById('auth-password-area').classList.remove('hidden');
+            }
+            modal.classList.remove('hidden'); setTimeout(()=>document.getElementById('username-input').focus(),50);
         }
-        document.getElementById('btn-check-username').addEventListener('click', checkUsername);
-        document.getElementById('btn-auth-submit').addEventListener('click', confirmUsername);
-        document.getElementById('btn-forgot-password').addEventListener('click', () => document.getElementById('password-reset-modal').classList.remove('hidden'));
-        document.getElementById('btn-close-reset-password').addEventListener('click', () => document.getElementById('password-reset-modal').classList.add('hidden'));
-        document.getElementById('username-input').addEventListener('keydown', e => { if (e.key === 'Enter') checkUsername(); });
-        document.getElementById('password-input').addEventListener('keydown', e => { if (e.key === 'Enter') confirmUsername(); });
 
-        function getLocalLeaderboard() {
-            try { return JSON.parse(localStorage.getItem(LEADERBOARD_KEY) || '[]'); } catch(e) { return []; }
+        async function changeUsername() {
+            const name=document.getElementById('username-input').value.trim(), p=getProfile(), error=document.getElementById('username-error');
+            if(!p?.authToken){ error.textContent='Please log in again first.'; error.classList.remove('hidden'); return; }
+            if(!/^[A-Za-z0-9 _-]{2,16}$/.test(name)){ error.textContent='Use 2–16 letters, numbers, spaces, _ or - only.'; error.classList.remove('hidden'); return; }
+            try {
+                const r=await fetch(ONLINE_LEADERBOARD_API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'rename',oldUsername:p.username,newUsername:name,authToken:p.authToken})});
+                const data=await r.json(); if(!r.ok||!data.success){ if(data.suggestions)showSuggestions(data.suggestions); error.textContent=data.error||'Could not change username.'; error.classList.remove('hidden'); return; }
+                saveProfile(data.username,p.playerId,p.authToken); document.getElementById('username-modal').classList.add('hidden'); scheduleOnlineSync();
+            } catch(e){ error.textContent='Could not connect to the account server.'; error.classList.remove('hidden'); }
         }
+        document.getElementById('btn-auth-login').addEventListener('click',()=>{usernameChangeMode=false;setAuthScreen('login');});
+        document.getElementById('btn-auth-signup').addEventListener('click',()=>{usernameChangeMode=false;setAuthScreen('signup');});
+        document.getElementById('btn-check-username').addEventListener('click',()=> usernameChangeMode ? checkUsername() : checkUsername());
+        document.getElementById('btn-auth-submit').addEventListener('click',()=> usernameChangeMode ? changeUsername() : confirmUsername());
+        document.getElementById('btn-forgot-password').addEventListener('click',openPasswordResetModal);
+        document.getElementById('btn-settings-password').addEventListener('click',openPasswordResetModal);
+        document.getElementById('btn-delete-profile').addEventListener('click',openDeleteProfileModal);
+        document.getElementById('btn-close-delete-profile').addEventListener('click',closeDeleteProfileModal);
+        document.getElementById('btn-delete-profile-check').addEventListener('click',checkDeleteProfileName);
+        document.getElementById('btn-delete-profile-final').addEventListener('click',permanentlyDeleteProfile);
+        document.getElementById('btn-delete-profile-back').addEventListener('click',()=>{document.getElementById('delete-confirm-step').classList.add('hidden');document.getElementById('delete-name-step').classList.remove('hidden');});
+        document.getElementById('delete-profile-name').addEventListener('keydown',e=>{if(e.key==='Enter')checkDeleteProfileName();});
+        document.getElementById('btn-close-reset-password').addEventListener('click',()=>document.getElementById('password-reset-modal').classList.add('hidden'));
+        document.getElementById('btn-do-reset-password').addEventListener('click',doPasswordReset);
+        document.getElementById('username-input').addEventListener('keydown',e=>{if(e.key==='Enter')checkUsername();});
+        document.getElementById('password-input').addEventListener('keydown',e=>{if(e.key==='Enter')confirmUsername();});
+        function openPasswordResetModal() {
+            const p=getProfile();
+            const modal=document.getElementById('password-reset-modal');
+            document.getElementById('reset-current-password').value='';
+            document.getElementById('reset-new-password').value='';
+            document.getElementById('reset-confirm-password').value='';
+            document.getElementById('reset-password-error').classList.add('hidden');
+            modal.classList.remove('hidden');
+        }
+        async function doPasswordReset() {
+            const p=getProfile();
+            const current=document.getElementById('reset-current-password').value;
+            const next=document.getElementById('reset-new-password').value;
+            const confirm=document.getElementById('reset-confirm-password').value;
+            const error=document.getElementById('reset-password-error');
+            if(!p?.authToken){ error.textContent='Please log in first, then reset your password.'; error.classList.remove('hidden'); return; }
+            if(current.length<4 || next.length<4){ error.textContent='Passwords must be at least 4 characters.'; error.classList.remove('hidden'); return; }
+            if(next!==confirm){ error.textContent='New passwords do not match.'; error.classList.remove('hidden'); return; }
+            try {
+                const r=await fetch(ONLINE_LEADERBOARD_API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'change_password',username:p.username,currentPassword:current,newPassword:next,authToken:p.authToken})});
+                const d=await r.json();
+                if(!r.ok||!d.success){ error.textContent=d.error||'Could not reset password.'; error.classList.remove('hidden'); return; }
+                document.getElementById('password-reset-modal').classList.add('hidden');
+                alert('Password changed successfully.');
+            } catch(e){ error.textContent='Could not connect to the account server.'; error.classList.remove('hidden'); }
+        }
+
+        function openDeleteProfileModal() {
+            const p=getProfile();
+            if(!p?.username || !p?.authToken){ alert('Please log in first.'); return; }
+            document.getElementById('delete-expected-name').textContent=p.username;
+            document.getElementById('delete-profile-name').value='';
+            document.getElementById('delete-profile-error').classList.add('hidden');
+            document.getElementById('delete-name-step').classList.remove('hidden');
+            document.getElementById('delete-confirm-step').classList.add('hidden');
+            document.getElementById('delete-profile-modal').classList.remove('hidden');
+            setTimeout(()=>document.getElementById('delete-profile-name').focus(),50);
+        }
+        function closeDeleteProfileModal(){ document.getElementById('delete-profile-modal').classList.add('hidden'); }
+        function checkDeleteProfileName(){
+            const p=getProfile(), typed=document.getElementById('delete-profile-name').value, error=document.getElementById('delete-profile-error');
+            if(!p?.username){ error.textContent='Please log in again.'; error.classList.remove('hidden'); return; }
+            if(typed!==p.username){ error.textContent='The name must match your profile name exactly.'; error.classList.remove('hidden'); return; }
+            error.classList.add('hidden');
+            document.getElementById('delete-name-step').classList.add('hidden');
+            document.getElementById('delete-confirm-step').classList.remove('hidden');
+        }
+        async function permanentlyDeleteProfile(){
+            const p=getProfile();
+            if(!p?.username || !p?.authToken){ alert('Please log in again.'); return; }
+            const btn=document.getElementById('btn-delete-profile-final'); btn.disabled=true; btn.textContent='DELETING...';
+            try{
+                const r=await fetch(ONLINE_LEADERBOARD_API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'delete_account',username:p.username,authToken:p.authToken})});
+                const d=await r.json();
+                if(!r.ok||!d.success){ alert(d.error||'Could not delete the profile.'); btn.disabled=false; btn.textContent='YES, I AM SURE'; return; }
+                localStorage.removeItem(PROFILE_KEY); localStorage.removeItem('boxing_clicker_save_v2'); localStorage.removeItem(LEADERBOARD_KEY);
+                window.location.href=window.location.href.split('#')[0]+'?account_deleted='+Date.now();
+            }catch(e){ alert('Could not connect to the account server.'); btn.disabled=false; btn.textContent='YES, I AM SURE'; }
+        }
+
         function updateLocalLeaderboard() {
             const p = getProfile(); if (!p) return;
             const rows = getLocalLeaderboard().filter(r => r.playerId !== p.playerId);
@@ -1572,6 +1688,7 @@
         }
 
         let onlineSyncTimer = null;
+        let leaderboardRefreshTimer = null;
         async function syncOnlineLeaderboard() {
             if (!ONLINE_LEADERBOARD_API) return null;
             const p = getProfile();
@@ -1591,7 +1708,7 @@
                     })
                 });
 
-                const response = await fetch(ONLINE_LEADERBOARD_API);
+                const response = await fetch(ONLINE_LEADERBOARD_API, { cache: 'no-store' });
                 const data = await response.json();
                 if (!data.success) return null;
 
@@ -1628,6 +1745,12 @@
         }
         async function openLeaderboard() {
             updateLocalLeaderboard();
+            clearInterval(leaderboardRefreshTimer);
+            leaderboardRefreshTimer = setInterval(async () => {
+                if (document.getElementById('leaderboard-modal').classList.contains('hidden')) return;
+                const rows = await syncOnlineLeaderboard();
+                if (rows) renderLeaderboard(rows, true);
+            }, 3000);
             document.getElementById('leaderboard-modal').classList.remove('hidden');
             renderLeaderboard(getLocalLeaderboard(), false);
 
@@ -1663,15 +1786,15 @@
         const _saveGameOriginal = saveGame;
         saveGame = function() { _saveGameOriginal(); updateLocalLeaderboard(); scheduleOnlineSync(); };
 
-        document.getElementById('btn-change-username').addEventListener('click', openUsernameModal);
-        document.getElementById('btn-close-leaderboard').addEventListener('click', () => document.getElementById('leaderboard-modal').classList.add('hidden'));
+        document.getElementById('btn-change-username').addEventListener('click', () => openUsernameModal('change'));
+        document.getElementById('btn-close-leaderboard').addEventListener('click', () => { document.getElementById('leaderboard-modal').classList.add('hidden'); clearInterval(leaderboardRefreshTimer); });
         document.getElementById('btn-settings-leaderboard').addEventListener('click', openLeaderboard);
         document.getElementById('btn-leaderboard-mobile')?.addEventListener('click', openLeaderboard);
         document.getElementById('btn-leaderboard-desktop')?.addEventListener('click', openLeaderboard);
 
 
         window.onload = function() {
-            loadGame();
+                        loadGame();
             applyGraphicsMode();
             ensureProfile();
             resizeCanvas();
