@@ -1,78 +1,458 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Owner Panel</title>
-<style>
-*{box-sizing:border-box}body{margin:0;min-height:100vh;padding:16px;background:#080808;color:#f5f5f5;font:16px Arial,sans-serif;display:flex;justify-content:center;align-items:flex-start}.panel{width:100%;max-width:720px;margin:12px auto;padding:20px;background:#111;border:1px solid #333;border-radius:16px}h1{font-size:27px;margin:0 0 6px}.owner{color:#aaa;margin-bottom:14px}.tag{display:inline-block;padding:6px 9px;border:1px solid #555;border-radius:6px;font-size:12px;margin-bottom:16px}.status{padding:12px;background:#1b1b1b;border-radius:8px;margin-bottom:16px;line-height:1.4;overflow-wrap:anywhere}.section{border-top:1px solid #333;padding-top:16px;margin-top:16px}h2{font-size:18px;margin:0 0 12px}label{display:block;font-size:14px;color:#bbb;margin:0 0 6px}input{width:100%;min-width:0;padding:12px;background:#080808;border:1px solid #444;border-radius:8px;color:white;font-size:16px}.search{position:relative}.suggestions{position:absolute;z-index:4;top:100%;left:0;right:0;max-height:220px;overflow:auto;background:#191919;border:1px solid #555;border-radius:8px}.suggestions[hidden]{display:none}.suggestion{display:block;width:100%;padding:12px;text-align:left;background:#191919;color:#fff;border:0;border-radius:0;font-weight:normal}.suggestion:hover,.suggestion:focus{background:#333}.hint,.warning{font-size:12px;color:#999;line-height:1.5;margin-top:8px}.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:14px 0}.stat{min-width:0;background:#1b1b1b;border-radius:8px;padding:12px 6px;text-align:center}.label{font-size:12px;color:#999}.value{font-size:18px;font-weight:bold;margin-top:5px;overflow-wrap:anywhere}.inputs,.buttons{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.inputs{margin-bottom:14px}.field{margin-bottom:2px}button{min-height:44px;padding:11px;border:0;border-radius:8px;font-weight:bold;font-size:14px;cursor:pointer}.primary{background:#f4f4f4;color:#111}.secondary{background:#333;color:#fff;border:1px solid #555}.danger{background:#651d1d;color:white;border:1px solid #a33}button:disabled{opacity:.5;cursor:not-allowed}.back{display:block;text-align:center;color:#999;text-decoration:none;margin-top:20px}@media(max-width:520px){.panel{padding:15px}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.inputs,.buttons{grid-template-columns:1fr}h1{font-size:24px}}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Owner Panel</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: #080808;
+            color: white;
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .panel {
+            width: 100%;
+            max-width: 600px;
+            background: #111;
+            border: 1px solid #333;
+            border-radius: 18px;
+            padding: 25px;
+            box-shadow: 0 0 30px rgba(0,0,0,.5);
+        }
+
+        h1 {
+            margin: 0 0 5px;
+            font-size: 30px;
+        }
+
+        .owner-name {
+            color: #aaa;
+            margin-bottom: 20px;
+        }
+
+        .tag {
+            display: inline-block;
+            background: #000;
+            color: white;
+            border: 1px solid #555;
+            border-radius: 6px;
+            padding: 5px 9px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .status {
+            padding: 12px;
+            border-radius: 8px;
+            background: #1a1a1a;
+            margin-bottom: 20px;
+            color: #bbb;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+
+        .stat {
+            background: #191919;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .stat-title {
+            color: #999;
+            font-size: 13px;
+        }
+
+        .stat-value {
+            font-size: 22px;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+
+        .inputs {
+            display: grid;
+            gap: 12px;
+        }
+
+        label {
+            font-size: 14px;
+            color: #bbb;
+        }
+
+        input {
+            width: 100%;
+            margin-top: 5px;
+            padding: 12px;
+            background: #090909;
+            border: 1px solid #444;
+            color: white;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        .buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        button {
+            padding: 13px;
+            border: 0;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: bold;
+        }
+
+        #setBtn {
+            background: white;
+            color: black;
+        }
+
+        #addBtn {
+            background: #333;
+            color: white;
+            border: 1px solid #555;
+        }
+
+        button:disabled {
+            opacity: .5;
+            cursor: not-allowed;
+        }
+
+        .back {
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+            color: #888;
+            text-decoration: none;
+        }
+
+        .back:hover {
+            color: white;
+        }
+
+        @media (max-width: 500px) {
+            .stats {
+                grid-template-columns: 1fr;
+            }
+
+            .buttons {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
+
 <body>
-<main class="panel">
-<h1>OWNER PANEL</h1><div class="owner">itskillerultrayt</div><div class="tag">FOUNDER / OWNER</div>
-<div id="status" class="status" role="status" aria-live="polite">Checking owner access...</div>
-<div id="panelContent" hidden>
-<section class="section">
-<h2>Find a player</h2><label for="playerSearch">Player username</label>
-<div class="search"><input id="playerSearch" autocomplete="off" spellcheck="false" maxlength="40" placeholder="Start typing a username..."><div id="suggestions" class="suggestions" role="listbox" hidden></div></div>
-<div class="hint">Type a username and tap a suggestion, or press LOAD PLAYER.</div>
-<div class="buttons" style="margin-top:12px"><button id="loadBtn" class="primary">LOAD PLAYER</button><button id="clearBtn" class="secondary">CLEAR SELECTION</button></div>
-</section>
-<section id="playerArea" class="section" hidden>
-<h2 id="playerHeading">Player stats</h2>
-<div class="stats">
-<div class="stat"><div class="label">CASH</div><div id="cashDisplay" class="value">0</div></div>
-<div class="stat"><div class="label">PUNCHES</div><div id="punchesDisplay" class="value">0</div></div>
-<div class="stat"><div class="label">REBIRTHS</div><div id="rebirthsDisplay" class="value">0</div></div>
-<div class="stat"><div class="label">REBIRTH TOKENS</div><div id="tokensDisplay" class="value">0</div></div>
+
+<div class="panel">
+
+    <h1>OWNER PANEL</h1>
+
+    <div class="owner-name">
+        itskillerultrayt
+    </div>
+
+    <div class="tag">
+        FOUNDER / OWNER
+    </div>
+
+    <div id="status" class="status">
+        Checking owner access...
+    </div>
+
+    <div id="panelContent" style="display:none;">
+
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-title">CASH</div>
+                <div id="cashDisplay" class="stat-value">0</div>
+            </div>
+
+            <div class="stat">
+                <div class="stat-title">PUNCHES</div>
+                <div id="punchesDisplay" class="stat-value">0</div>
+            </div>
+
+            <div class="stat">
+                <div class="stat-title">REBIRTHS</div>
+                <div id="rebirthsDisplay" class="stat-value">0</div>
+            </div>
+        </div>
+
+        <div class="inputs">
+
+            <div>
+                <label>Cash</label>
+                <input id="cashInput" type="number" min="0" value="0">
+            </div>
+
+            <div>
+                <label>Punches</label>
+                <input id="punchesInput" type="number" min="0" value="0">
+            </div>
+
+            <div>
+                <label>Rebirths</label>
+                <input id="rebirthsInput" type="number" min="0" value="0">
+            </div>
+
+        </div>
+
+        <div class="buttons">
+            <button id="setBtn">
+                SET STATS
+            </button>
+
+            <button id="addBtn">
+                ADD TO STATS
+            </button>
+        </div>
+
+    </div>
+
+    <a class="back" href="/">
+        ← Back to Game
+    </a>
+
 </div>
-<h2>Edit stats</h2>
-<div class="inputs">
-<div class="field"><label for="cashInput">Cash</label><input id="cashInput" type="number" min="0" step="1" value="0"></div>
-<div class="field"><label for="punchesInput">Punches</label><input id="punchesInput" type="number" min="0" step="1" value="0"></div>
-<div class="field"><label for="rebirthsInput">Rebirths</label><input id="rebirthsInput" type="number" min="0" step="1" value="0"></div>
-<div class="field"><label for="tokensInput">Rebirth tokens</label><input id="tokensInput" type="number" min="0" step="1" value="0"></div>
-</div>
-<div class="buttons">
-<button id="setBtn" class="primary">SET EXACT STATS</button><button id="addBtn" class="secondary">ADD THESE AMOUNTS</button>
-<button id="resetBtn" class="danger">RESET PLAYER PROGRESS</button><button id="deleteBtn" class="danger">DELETE PLAYER ACCOUNT</button>
-</div>
-<div class="warning">SET EXACT STATS replaces values. ADD increases values. Reset/delete are destructive and cannot easily be undone. The owner account cannot be edited or deleted here.</div>
-</section>
-</div>
-<a class="back" href="/">← Back to Game</a>
-</main>
+
 <script>
-"use strict";
-const PROFILE_KEY="boxing_clicker_profile_v2", OWNER_USERNAME="itskillerultrayt", OWNER_API="/api/owner", SUGGESTIONS_API="/api/player-suggestions";
-let profile=null, selectedUsername="", searchTimer=null, searchId=0;
-const $=id=>document.getElementById(id);
-const statusBox=$("status"), panelContent=$("panelContent"), search=$("playerSearch"), list=$("suggestions"), playerArea=$("playerArea");
-function status(t){statusBox.textContent=t}
-function getProfile(){try{return JSON.parse(localStorage.getItem(PROFILE_KEY)||"null")}catch(_){return null}}
-function fmt(v){const n=Number(v);return (Number.isFinite(n)?Math.floor(n):0).toLocaleString()}
-async function post(url,body){const r=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});let d;try{d=await r.json()}catch(_){throw Error("Server se valid response nahi mila.")}return d}
-function ownerBody(action,values={}){return {action,username:profile.username,authToken:profile.authToken,...values}}
-function hideList(){list.hidden=true;list.replaceChildren()}
-async function getSuggestions(q){const d=await post(SUGGESTIONS_API,{username:profile.username,authToken:profile.authToken,search:q});if(!d.success)throw Error(d.error||"Suggestions load nahi huin.");return Array.isArray(d.players)?d.players:[]}
-function showList(names){list.replaceChildren();if(!names.length){const e=document.createElement("div");e.className="suggestion";e.textContent="Koi matching username nahi mila";list.append(e)}else names.filter(n=>n!==OWNER_USERNAME).forEach(name=>{const b=document.createElement("button");b.type="button";b.className="suggestion";b.textContent=name;b.setAttribute("role","option");b.addEventListener("click",()=>{search.value=name;hideList();loadPlayer(name)});list.append(b)});list.hidden=false}
-async function findSuggestions(){const q=search.value.trim(),id=++searchId;if(!q){hideList();return}try{const names=await getSuggestions(q);if(id===searchId&&search.value.trim()===q)showList(names)}catch(e){if(id===searchId){hideList();status(e.message)}}}
-function display(d){$("cashDisplay").textContent=fmt(d.cash);$("punchesDisplay").textContent=fmt(d.punches);$("rebirthsDisplay").textContent=fmt(d.rebirths);$("tokensDisplay").textContent=fmt(d.rebirthTokens);$("cashInput").value=Math.max(0,Math.floor(Number(d.cash)||0));$("punchesInput").value=Math.max(0,Math.floor(Number(d.punches)||0));$("rebirthsInput").value=Math.max(0,Math.floor(Number(d.rebirths)||0));$("tokensInput").value=Math.max(0,Math.floor(Number(d.rebirthTokens)||0))}
-async function loadPlayer(name=search.value.trim()){const targetUsername=String(name||"").trim();if(!targetUsername){status("Pehle username likhein.");search.focus();return}if(targetUsername===OWNER_USERNAME){status("Owner account yahan edit nahi ho sakta.");return}hideList();$("loadBtn").disabled=true;status("Player load ho raha hai...");try{const d=await post(OWNER_API,ownerBody("get_player",{targetUsername}));if(!d.success){selectedUsername="";playerArea.hidden=true;status(d.error||"Player nahi mila.");return}selectedUsername=d.username||targetUsername;search.value=selectedUsername;$("playerHeading").textContent="Player stats: "+selectedUsername;display(d);playerArea.hidden=false;status("Player load ho gaya: "+selectedUsername)}catch(e){status(e.message||"Server connection fail ho gaya.")}finally{$("loadBtn").disabled=false}}
-function values(){const out={};for(const [key,id] of [["cash","cashInput"],["punches","punchesInput"],["rebirths","rebirthsInput"],["rebirthTokens","tokensInput"]]){const n=Number($(id).value);if(!Number.isFinite(n)||n<0)throw Error("Har stat mein 0 ya us se bara valid number likhein.");out[key]=Math.floor(n)}return out}
-async function statsAction(action){if(!selectedUsername){status("Pehle player load karein.");return}let v;try{v=values()}catch(e){status(e.message);return}const buttons=["setBtn","addBtn","resetBtn","deleteBtn"];buttons.forEach(id=>$(id).disabled=true);try{status("Stats update ho rahe hain...");const d=await post(OWNER_API,ownerBody(action,{targetUsername:selectedUsername,...v}));if(!d.success){status(d.error||"Stats update nahi huay.");return}await loadPlayer(selectedUsername);status(d.message||(action==="set_stats"?"Stats update ho gaye.":"Stats add ho gaye."))}catch(e){status(e.message||"Request fail ho gayi.")}finally{buttons.forEach(id=>$(id).disabled=false)}}
-async function resetPlayer(){if(!selectedUsername){status("Pehle player load karein.");return}if(!confirm(selectedUsername+" ki sari game progress reset karni hai?"))return;try{const d=await post(OWNER_API,ownerBody("reset_progress",{targetUsername:selectedUsername}));if(!d.success){status(d.error||"Reset fail hua.");return}await loadPlayer(selectedUsername);status(d.message||"Progress reset ho gayi.")}catch(e){status(e.message||"Reset fail hua.")}}
-async function deletePlayer(){if(!selectedUsername){status("Pehle player load karein.");return}const target=selectedUsername;if(!confirm("WARNING: "+target+" ka account delete karna hai?"))return;if(prompt("Confirm karne ke liye exact username likhein: "+target)!==target){status("Delete cancel kar diya.");return}try{const d=await post(OWNER_API,ownerBody("delete_player",{targetUsername:target}));if(!d.success){status(d.error||"Delete fail hua.");return}selectedUsername="";search.value="";playerArea.hidden=true;status(d.message||"Account delete ho gaya.")}catch(e){status(e.message||"Delete fail hua.")}}
-search.addEventListener("input",()=>{selectedUsername="";playerArea.hidden=true;clearTimeout(searchTimer);searchTimer=setTimeout(findSuggestions,220)});
-search.addEventListener("keydown",e=>{if(e.key==="Escape")hideList();if(e.key==="Enter"){e.preventDefault();hideList();loadPlayer()}});
-document.addEventListener("click",e=>{if(!e.target.closest(".search"))hideList()});
-$("loadBtn").addEventListener("click",()=>loadPlayer());$("clearBtn").addEventListener("click",()=>{selectedUsername="";search.value="";playerArea.hidden=true;hideList();status("Selection clear ho gayi.")});
-$("setBtn").addEventListener("click",()=>statsAction("set_stats"));$("addBtn").addEventListener("click",()=>statsAction("add_stats"));$("resetBtn").addEventListener("click",resetPlayer);$("deleteBtn").addEventListener("click",deletePlayer);
-profile=getProfile();
-if(!profile)status("Login session nahi mili. Main game par owner account mein login karein, phir wapas aayein.");
-else if(profile.username!==OWNER_USERNAME||!profile.authToken)status("OWNER ACCESS DENIED. Sirf owner account use kar sakta hai.");
-else{panelContent.hidden=false;status("Owner session verified. Username type karke player search karein.")}
+
+const PROFILE_KEY = "boxing_clicker_profile_v2";
+const OWNER_USERNAME = "itskillerultrayt";
+const OWNER_API = "/api/owner";
+
+let profile = null;
+
+const statusBox = document.getElementById("status");
+const panelContent = document.getElementById("panelContent");
+
+const cashDisplay = document.getElementById("cashDisplay");
+const punchesDisplay = document.getElementById("punchesDisplay");
+const rebirthsDisplay = document.getElementById("rebirthsDisplay");
+
+const cashInput = document.getElementById("cashInput");
+const punchesInput = document.getElementById("punchesInput");
+const rebirthsInput = document.getElementById("rebirthsInput");
+
+const setBtn = document.getElementById("setBtn");
+const addBtn = document.getElementById("addBtn");
+
+
+function getProfile() {
+
+    try {
+        const saved = localStorage.getItem(PROFILE_KEY);
+
+        if (!saved) {
+            return null;
+        }
+
+        return JSON.parse(saved);
+
+    } catch (error) {
+        return null;
+    }
+}
+
+
+function formatNumber(number) {
+    return Number(number || 0).toLocaleString();
+}
+
+
+function setStatus(message) {
+    statusBox.textContent = message;
+}
+
+
+async function ownerRequest(action, values = {}) {
+
+    const response = await fetch(OWNER_API, {
+        method: "POST",
+
+        headers: {
+            "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify({
+            action: action,
+            username: profile.username,
+            authToken: profile.authToken,
+            ...values
+        })
+    });
+
+    return await response.json();
+}
+
+
+function displayStats(data) {
+
+    cashDisplay.textContent = formatNumber(data.cash);
+    punchesDisplay.textContent = formatNumber(data.punches);
+    rebirthsDisplay.textContent = formatNumber(data.rebirths);
+
+    cashInput.value = data.cash;
+    punchesInput.value = data.punches;
+    rebirthsInput.value = data.rebirths;
+}
+
+
+async function loadOwnerStats() {
+
+    try {
+
+        const data = await ownerRequest("get_stats");
+
+        if (!data.success) {
+            setStatus(data.error || "Owner access denied.");
+            return;
+        }
+
+        panelContent.style.display = "block";
+
+        displayStats(data);
+
+        setStatus("Owner access verified.");
+
+    } catch (error) {
+
+        setStatus("Could not connect to the owner server.");
+
+    }
+}
+
+
+async function setStats() {
+
+    setBtn.disabled = true;
+    addBtn.disabled = true;
+
+    setStatus("Saving owner stats...");
+
+    try {
+
+        const data = await ownerRequest("set_stats", {
+
+            cash: Number(cashInput.value) || 0,
+            punches: Number(punchesInput.value) || 0,
+            rebirths: Number(rebirthsInput.value) || 0
+
+        });
+
+        if (!data.success) {
+
+            setStatus(data.error || "Could not update stats.");
+
+            return;
+        }
+
+        displayStats(data);
+
+        setStatus("Owner stats successfully updated.");
+
+    } catch (error) {
+
+        setStatus("Server connection failed.");
+
+    } finally {
+
+        setBtn.disabled = false;
+        addBtn.disabled = false;
+    }
+}
+
+
+async function addStats() {
+
+    setBtn.disabled = true;
+    addBtn.disabled = true;
+
+    setStatus("Adding stats...");
+
+    try {
+
+        const data = await ownerRequest("add_stats", {
+
+            cash: Number(cashInput.value) || 0,
+            punches: Number(punchesInput.value) || 0,
+            rebirths: Number(rebirthsInput.value) || 0
+
+        });
+
+        if (!data.success) {
+
+            setStatus(data.error || "Could not add stats.");
+
+            return;
+        }
+
+        displayStats(data);
+
+        setStatus("Stats successfully added.");
+
+    } catch (error) {
+
+        setStatus("Server connection failed.");
+
+    } finally {
+
+        setBtn.disabled = false;
+        addBtn.disabled = false;
+    }
+}
+
+
+setBtn.addEventListener("click", setStats);
+addBtn.addEventListener("click", addStats);
+
+
+profile = getProfile();
+
+
+if (!profile) {
+
+    setStatus(
+        "No login session found. Log in to your owner account on the main game first."
+    );
+
+} else if (
+    profile.username !== OWNER_USERNAME ||
+    !profile.authToken
+) {
+
+    setStatus("OWNER ACCESS DENIED.");
+
+} else {
+
+    loadOwnerStats();
+
+}
+
 </script>
+
 </body>
 </html>
