@@ -368,9 +368,10 @@
             <div class="space-y-3 border-t border-slate-800 pt-4">
                 <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400">Player</h4>
                 <div class="flex justify-between items-center bg-slate-950 p-3 rounded-xl border border-slate-800">
-                    <div><div class="font-semibold text-sm">Username</div><div id="settings-username" class="text-xs text-slate-500">Not set</div><div id="settings-rank" class="text-[10px] text-purple-400">Rank: Rookie</div></div>
+                    <div><div class="font-semibold text-sm">Username</div><div id="settings-username" class="text-xs text-slate-500">Not set</div><div id="settings-rank" class="text-[10px] text-purple-400">Rank: Rookie</div><div id="settings-session-status" class="text-[10px] text-amber-300 mt-1">Login status: checking...</div></div>
                     <button id="btn-change-username" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-white">CHANGE</button>
                 </div>
+                <button id="btn-settings-login" class="w-full px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold"><i class="fas fa-right-to-bracket mr-1"></i> LOGIN / RECONNECT ACCOUNT</button>
                 <button id="btn-settings-password" class="w-full px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold"><i class="fas fa-key mr-1"></i> RESET / CHANGE PASSWORD</button>
                 <button id="btn-delete-profile" class="w-full px-4 py-2 rounded-xl bg-red-950/50 hover:bg-red-900/70 border border-red-800/60 text-red-300 text-xs font-bold"><i class="fas fa-user-xmark mr-1"></i> DELETE PROFILE</button>
                 <button id="btn-settings-leaderboard" class="w-full px-4 py-2 rounded-xl bg-yellow-600 hover:bg-yellow-500 text-white text-xs font-bold"><i class="fas fa-trophy mr-1"></i> Open Leaderboard</button>
@@ -1497,6 +1498,18 @@
             if (el) el.textContent = getProfile()?.username || 'Not set';
             const rankEl = document.getElementById('settings-rank');
             if (rankEl) rankEl.textContent = `Rank: ${getRebirthTitle ? getRebirthTitle() : 'Rookie'}`;
+            const sessionEl = document.getElementById('settings-session-status');
+            const profile = getProfile();
+            if (sessionEl) {
+                sessionEl.textContent = profile?.username && profile?.authToken ? 'Login status: connected' : 'Login status: login required';
+                sessionEl.classList.toggle('text-emerald-400', !!(profile?.username && profile?.authToken));
+                sessionEl.classList.toggle('text-amber-300', !(profile?.username && profile?.authToken));
+            }
+        }
+        function openLoginReconnect(message='Log in with your existing username and password to reconnect this account.') {
+            openUsernameModal('login');
+            const error = document.getElementById('username-error');
+            if (error) { error.textContent = message; error.classList.remove('hidden'); }
         }
         let authScreenMode = 'login';
         let usernameChangeMode = false;
@@ -1574,6 +1587,7 @@
                 const r = await fetch(ONLINE_LEADERBOARD_API, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action:authScreenMode==='signup'?'register':'login',username:name,password,confirmPassword:confirm}) });
                 const data = await r.json();
                 if (!r.ok || !data.success) { if (data.suggestions) showSuggestions(data.suggestions); error.textContent = data.error || 'Unable to continue.'; error.classList.remove('hidden'); return; }
+                if (typeof data.authToken !== 'string' || !data.authToken.trim()) { error.textContent = 'Account server ne login token nahi diya. /api/leaderboard.js ko check karna hoga; account ko naya sign up mat karo.'; error.classList.remove('hidden'); return; }
                 saveProfile(data.username || name, data.playerId, data.authToken);
                 if (data.gameState) applyRemoteGameState(data.gameState);
                 document.getElementById('username-modal').classList.add('hidden'); updateLocalLeaderboard(); scheduleOnlineSync();
@@ -1599,7 +1613,7 @@
 
         async function changeUsername() {
             const name=document.getElementById('username-input').value.trim(), p=getProfile(), error=document.getElementById('username-error');
-            if(!p?.authToken){ error.textContent='Please log in again first.'; error.classList.remove('hidden'); return; }
+            if(!p?.authToken){ openLoginReconnect('Session missing. Log in with your existing username and password, then retry this action.'); return; }
             if(!/^[A-Za-z0-9 _-]{2,16}$/.test(name)){ error.textContent='Use 2–16 letters, numbers, spaces, _ or - only.'; error.classList.remove('hidden'); return; }
             try {
                 const r=await fetch(ONLINE_LEADERBOARD_API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'rename',oldUsername:p.username,newUsername:name,authToken:p.authToken})});
@@ -1612,6 +1626,7 @@
         document.getElementById('btn-check-username').addEventListener('click',()=> usernameChangeMode ? checkUsername() : checkUsername());
         document.getElementById('btn-auth-submit').addEventListener('click',()=> usernameChangeMode ? changeUsername() : confirmUsername());
         document.getElementById('btn-forgot-password').addEventListener('click',openPasswordResetModal);
+        document.getElementById('btn-settings-login').addEventListener('click',()=>openLoginReconnect());
         document.getElementById('btn-settings-password').addEventListener('click',openPasswordResetModal);
         document.getElementById('btn-delete-profile').addEventListener('click',openDeleteProfileModal);
         document.getElementById('btn-close-delete-profile').addEventListener('click',closeDeleteProfileModal);
@@ -1638,7 +1653,7 @@
             const next=document.getElementById('reset-new-password').value;
             const confirm=document.getElementById('reset-confirm-password').value;
             const error=document.getElementById('reset-password-error');
-            if(!p?.authToken){ error.textContent='Please log in first, then reset your password.'; error.classList.remove('hidden'); return; }
+            if(!p?.authToken){ openLoginReconnect('Session missing. Log in with your existing username and password first, then reopen password change.'); return; }
             if(current.length<4 || next.length<4){ error.textContent='Passwords must be at least 4 characters.'; error.classList.remove('hidden'); return; }
             if(next!==confirm){ error.textContent='New passwords do not match.'; error.classList.remove('hidden'); return; }
             try {
@@ -1652,7 +1667,7 @@
 
         function openDeleteProfileModal() {
             const p=getProfile();
-            if(!p?.username || !p?.authToken){ alert('Please log in first.'); return; }
+            if(!p?.username || !p?.authToken){ openLoginReconnect('Session missing. Log in with your existing username and password, then tap Delete Profile again.'); return; }
             document.getElementById('delete-expected-name').textContent=p.username;
             document.getElementById('delete-profile-name').value='';
             document.getElementById('delete-profile-error').classList.add('hidden');
@@ -1672,7 +1687,7 @@
         }
         async function permanentlyDeleteProfile(){
             const p=getProfile();
-            if(!p?.username || !p?.authToken){ alert('Please log in again.'); return; }
+            if(!p?.username || !p?.authToken){ openLoginReconnect('Session missing. Log in with your existing username and password first.'); return; }
             const btn=document.getElementById('btn-delete-profile-final'); btn.disabled=true; btn.textContent='DELETING...';
             try{
                 const r=await fetch(ONLINE_LEADERBOARD_API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'delete_account',username:p.username,authToken:p.authToken})});
