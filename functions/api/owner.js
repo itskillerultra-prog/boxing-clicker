@@ -19,10 +19,7 @@ export async function onRequest(context) {
         }
 
         if (request.method !== "POST") {
-            return json({
-                success: false,
-                error: "Method not allowed."
-            }, 405);
+            return json({ success: false, error: "Method not allowed." }, 405);
         }
 
         const body = await request.json();
@@ -30,7 +27,7 @@ export async function onRequest(context) {
         const username = String(body.username || "").trim();
         const authToken = String(body.authToken || "");
 
-        // Only the exact founder account can use this API.
+        // Only the real founder account can use this API.
         if (username !== OWNER_USERNAME) {
             return json({
                 success: false,
@@ -45,7 +42,7 @@ export async function onRequest(context) {
             }, 401);
         }
 
-        // Check the real login session in D1.
+        // Verify the real owner login session.
         const owner = await env.DB.prepare(
             `SELECT username FROM leaderboard
              WHERE username=? AND auth_token=?`
@@ -60,7 +57,96 @@ export async function onRequest(context) {
 
         const action = String(body.action || "");
 
+        // --------------------------------
+        // GET A PLAYER
+        // --------------------------------
+        if (action === "get_player") {
+            const targetUsername = String(body.targetUsername || "").trim();
+
+            if (!targetUsername) {
+                return json({
+                    success: false,
+                    error: "Enter a player username."
+                }, 400);
+            }
+
+            const player = await env.DB.prepare(
+                `SELECT username, cash, punches, rebirths, rebirths,
+                        rebirths, game_state
+                 FROM leaderboard
+                 WHERE username=?`
+            ).bind(targetUsername).first();
+
+            if (!player) {
+                return json({
+                    success: false,
+                    error: "Player not found."
+                }, 404);
+            }
+
+            let gameState = {};
+
+            try {
+                gameState = player.game_state
+                    ? JSON.parse(player.game_state)
+                    : {};
+            } catch (e) {
+                gameState = {};
+            }
+
+            return json({
+                success: true,
+                username: player.username,
+                cash: Number(player.cash) || 0,
+                punches: Number(player.punches) || 0,
+                rebirths: Number(player.rebirths) || 0,
+                rebirthTokens: Number(gameState.rebirthTokens) || 0,
+                gameState
+            });
+        }
+
+        // --------------------------------
+        // SET PLAYER STATS
+        // --------------------------------
         if (action === "set_stats") {
+            const targetUsername = String(body.targetUsername || "").trim();
+
+            if (!targetUsername) {
+                return json({
+                    success: false,
+                    error: "Enter a player username."
+                }, 400);
+            }
+
+            if (targetUsername === OWNER_USERNAME) {
+                return json({
+                    success: false,
+                    error: "Use the owner account separately."
+                }, 400);
+            }
+
+            const player = await env.DB.prepare(
+                `SELECT game_state FROM leaderboard
+                 WHERE username=?`
+            ).bind(targetUsername).first();
+
+            if (!player) {
+                return json({
+                    success: false,
+                    error: "Player not found."
+                }, 404);
+            }
+
+            let gameState = {};
+
+            try {
+                gameState = player.game_state
+                    ? JSON.parse(player.game_state)
+                    : {};
+            } catch (e) {
+                gameState = {};
+            }
+
             const cash = Math.max(
                 0,
                 Math.floor(Number(body.cash) || 0)
@@ -76,108 +162,244 @@ export async function onRequest(context) {
                 Math.floor(Number(body.rebirths) || 0)
             );
 
+            const rebirthTokens = Math.max(
+                0,
+                Math.floor(Number(body.rebirthTokens) || 0)
+            );
+
+            gameState.cash = cash;
+            gameState.totalPunches = punches;
+            gameState.rebirths = rebirths;
+            gameState.rebirthTokens = rebirthTokens;
+            gameState.savedAt = Date.now();
+
             await env.DB.prepare(
                 `UPDATE leaderboard
-                 SET cash=?, punches=?, rebirths=?, updated_at=?
-                 WHERE username=? AND auth_token=?`
+                 SET cash=?, punches=?, rebirths=?, game_state=?, updated_at=?
+                 WHERE username=?`
             ).bind(
                 cash,
                 punches,
                 rebirths,
+                JSON.stringify(gameState),
                 Date.now(),
-                username,
-                authToken
+                targetUsername
             ).run();
 
             return json({
                 success: true,
-                message: "Owner stats updated.",
+                message: "Player stats updated.",
+                username: targetUsername,
                 cash,
                 punches,
-                rebirths
+                rebirths,
+                rebirthTokens
             });
         }
 
-        if (action === "add_stats") {
-            const cashAdd = Math.max(
-                0,
-                Math.floor(Number(body.cash) || 0)
-            );
+        // --------------------------------
+        // RESET COMPLETE GAME PROGRESS
+        // --------------------------------
+        if (action === "reset_progress") {
+            const targetUsername = String(body.targetUsername || "").trim();
 
-            const punchesAdd = Math.max(
-                0,
-                Math.floor(Number(body.punches) || 0)
-            );
-
-            const rebirthsAdd = Math.max(
-                0,
-                Math.floor(Number(body.rebirths) || 0)
-            );
-
-            const current = await env.DB.prepare(
-                `SELECT cash, punches, rebirths
-                 FROM leaderboard
-                 WHERE username=? AND auth_token=?`
-            ).bind(username, authToken).first();
-
-            if (!current) {
+            if (!targetUsername) {
                 return json({
                     success: false,
-                    error: "Owner account not found."
+                    error: "Enter a player username."
+                }, 400);
+            }
+
+            if (targetUsername === OWNER_USERNAME) {
+                return json({
+                    success: false,
+                    error: "Owner progress cannot be reset here."
+                }, 400);
+            }
+
+            const player = await env.DB.prepare(
+                `SELECT username FROM leaderboard
+                 WHERE username=?`
+            ).bind(targetUsername).first();
+
+            if (!player) {
+                return json({
+                    success: false,
+                    error: "Player not found."
                 }, 404);
             }
 
-            const newCash =
-                Math.max(0, Number(current.cash) || 0) + cashAdd;
-
-            const newPunches =
-                Math.max(0, Number(current.punches) || 0) + punchesAdd;
-
-            const newRebirths =
-                Math.max(0, Number(current.rebirths) || 0) + rebirthsAdd;
+            const resetState = {
+                savedAt: Date.now(),
+                cash: 0,
+                totalPunches: 0,
+                rebirths: 0,
+                rebirthTokens: 0,
+                upgrades: {},
+                bags: {},
+                activeBagSkin: "",
+                tokenShop: {},
+                lowGraphics: false,
+                soundEnabled: true
+            };
 
             await env.DB.prepare(
                 `UPDATE leaderboard
-                 SET cash=?, punches=?, rebirths=?, updated_at=?
-                 WHERE username=? AND auth_token=?`
+                 SET cash=0, punches=0, rebirths=0,
+                     game_state=?, updated_at=?
+                 WHERE username=?`
+            ).bind(
+                JSON.stringify(resetState),
+                Date.now(),
+                targetUsername
+            ).run();
+
+            return json({
+                success: true,
+                message: "Player progress completely reset.",
+                username: targetUsername
+            });
+        }
+
+        // --------------------------------
+        // DELETE PLAYER ACCOUNT
+        // --------------------------------
+        if (action === "delete_player") {
+            const targetUsername = String(body.targetUsername || "").trim();
+
+            if (!targetUsername) {
+                return json({
+                    success: false,
+                    error: "Enter a player username."
+                }, 400);
+            }
+
+            if (targetUsername === OWNER_USERNAME) {
+                return json({
+                    success: false,
+                    error: "You cannot delete the owner account."
+                }, 400);
+            }
+
+            const player = await env.DB.prepare(
+                `SELECT username FROM leaderboard
+                 WHERE username=?`
+            ).bind(targetUsername).first();
+
+            if (!player) {
+                return json({
+                    success: false,
+                    error: "Player not found."
+                }, 404);
+            }
+
+            await env.DB.prepare(
+                `DELETE FROM leaderboard
+                 WHERE username=?`
+            ).bind(targetUsername).run();
+
+            return json({
+                success: true,
+                message: "Player account deleted.",
+                username: targetUsername
+            });
+        }
+
+        // --------------------------------
+        // ADD STATS
+        // --------------------------------
+        if (action === "add_stats") {
+            const targetUsername = String(body.targetUsername || "").trim();
+
+            if (!targetUsername) {
+                return json({
+                    success: false,
+                    error: "Enter a player username."
+                }, 400);
+            }
+
+            if (targetUsername === OWNER_USERNAME) {
+                return json({
+                    success: false,
+                    error: "Use the owner account separately."
+                }, 400);
+            }
+
+            const player = await env.DB.prepare(
+                `SELECT cash, punches, rebirths, game_state
+                 FROM leaderboard
+                 WHERE username=?`
+            ).bind(targetUsername).first();
+
+            if (!player) {
+                return json({
+                    success: false,
+                    error: "Player not found."
+                }, 404);
+            }
+
+            let gameState = {};
+
+            try {
+                gameState = player.game_state
+                    ? JSON.parse(player.game_state)
+                    : {};
+            } catch (e) {
+                gameState = {};
+            }
+
+            const cashAdd = Number(body.cash) || 0;
+            const punchesAdd = Number(body.punches) || 0;
+            const rebirthsAdd = Number(body.rebirths) || 0;
+            const tokensAdd = Number(body.rebirthTokens) || 0;
+
+            const newCash = Math.max(
+                0,
+                Math.floor(Number(player.cash) || 0) + Math.floor(cashAdd)
+            );
+
+            const newPunches = Math.max(
+                0,
+                Math.floor(Number(player.punches) || 0) + Math.floor(punchesAdd)
+            );
+
+            const newRebirths = Math.max(
+                0,
+                Math.floor(Number(player.rebirths) || 0) + Math.floor(rebirthsAdd)
+            );
+
+            const newTokens = Math.max(
+                0,
+                Math.floor(Number(gameState.rebirthTokens) || 0) + Math.floor(tokensAdd)
+            );
+
+            gameState.cash = newCash;
+            gameState.totalPunches = newPunches;
+            gameState.rebirths = newRebirths;
+            gameState.rebirthTokens = newTokens;
+            gameState.savedAt = Date.now();
+
+            await env.DB.prepare(
+                `UPDATE leaderboard
+                 SET cash=?, punches=?, rebirths=?, game_state=?, updated_at=?
+                 WHERE username=?`
             ).bind(
                 newCash,
                 newPunches,
                 newRebirths,
+                JSON.stringify(gameState),
                 Date.now(),
-                username,
-                authToken
+                targetUsername
             ).run();
 
             return json({
                 success: true,
-                message: "Owner stats increased.",
+                message: "Player stats increased.",
+                username: targetUsername,
                 cash: newCash,
                 punches: newPunches,
-                rebirths: newRebirths
-            });
-        }
-
-        if (action === "get_stats") {
-            const current = await env.DB.prepare(
-                `SELECT username, cash, punches, rebirths
-                 FROM leaderboard
-                 WHERE username=? AND auth_token=?`
-            ).bind(username, authToken).first();
-
-            if (!current) {
-                return json({
-                    success: false,
-                    error: "Owner account not found."
-                }, 404);
-            }
-
-            return json({
-                success: true,
-                username: current.username,
-                cash: Number(current.cash) || 0,
-                punches: Number(current.punches) || 0,
-                rebirths: Number(current.rebirths) || 0
+                rebirths: newRebirths,
+                rebirthTokens: newTokens
             });
         }
 
@@ -192,4 +414,4 @@ export async function onRequest(context) {
             error: "Server error."
         }, 500);
     }
-          }
+    }
