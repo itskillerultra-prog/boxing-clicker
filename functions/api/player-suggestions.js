@@ -9,10 +9,7 @@ export async function onRequestPost(context) {
     };
 
     const json = (data, status = 200) =>
-        new Response(JSON.stringify(data), {
-            status,
-            headers
-        });
+        new Response(JSON.stringify(data), { status, headers });
 
     try {
         if (request.method === "OPTIONS") {
@@ -27,11 +24,9 @@ export async function onRequestPost(context) {
         }
 
         const body = await request.json();
-
         const username = String(body.username || "").trim();
         const authToken = String(body.authToken || "");
         const search = String(body.search || "").trim();
-
         const OWNER_USERNAME = "itskillerultrayt";
 
         if (username !== OWNER_USERNAME) {
@@ -49,8 +44,7 @@ export async function onRequestPost(context) {
         }
 
         const owner = await env.DB.prepare(
-            `SELECT username
-             FROM leaderboard
+            `SELECT username FROM leaderboard
              WHERE username=? AND auth_token=?`
         ).bind(username, authToken).first();
 
@@ -62,18 +56,13 @@ export async function onRequestPost(context) {
         }
 
         if (!search) {
-            return json({
-                success: true,
-                players: []
-            });
+            return json({ success: true, players: [] });
         }
 
         const result = await env.DB.prepare(
-            `SELECT username
-             FROM leaderboard
+            `SELECT username FROM leaderboard
              WHERE LOWER(username) LIKE LOWER(?)
-             ORDER BY username ASC
-             LIMIT 8`
+             ORDER BY username ASC LIMIT 8`
         ).bind(search + "%").all();
 
         return json({
@@ -87,4 +76,4 @@ export async function onRequestPost(context) {
             error: "Server error."
         }, 500);
     }
-          }
+            }
