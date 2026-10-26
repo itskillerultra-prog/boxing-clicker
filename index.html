@@ -1392,9 +1392,12 @@
         }
 
         // Local Storage
+        let localSaveTime = 0;
         function saveGame() {
             try {
+                localSaveTime = Date.now();
                 const data = {
+                    savedAt: localSaveTime,
                     cash: gameState.cash,
                     totalPunches: gameState.totalPunches,
                     upgrades: gameState.upgrades,
@@ -1415,6 +1418,7 @@
                 const saved = localStorage.getItem('boxing_clicker_save_v2');
                 if (saved) {
                     const data = JSON.parse(saved);
+                    localSaveTime = Number(data.savedAt) || 0;
                     gameState.cash = data.cash || 0;
                     gameState.totalPunches = data.totalPunches || 0;
                     gameState.rebirths = Math.max(0, Math.floor(data.rebirths || 0));
@@ -1553,7 +1557,7 @@
                 if (remote.tokenShop) for (const k in remote.tokenShop) if (gameState.tokenShop[k]) gameState.tokenShop[k].count = Math.max(0, Math.min(gameState.tokenShop[k].max, Math.floor(Number(remote.tokenShop[k].count) || 0)));
                 applyGraphicsMode();
                 calculateStats();
-                saveGame();
+                _saveGameOriginal ? _saveGameOriginal() : saveGame();
             } catch (e) {}
         }
 
@@ -1679,6 +1683,21 @@
             }catch(e){ alert('Could not connect to the account server.'); btn.disabled=false; btn.textContent='YES, I AM SURE'; }
         }
 
+        function getLocalLeaderboard() {
+            try {
+                const raw = localStorage.getItem(LEADERBOARD_KEY);
+                const rows = JSON.parse(raw || '[]');
+                return Array.isArray(rows) ? rows : [];
+            } catch (e) {
+                return [];
+            }
+        }
+
+        const FOUNDER_USERNAME_KEY = 'itskillerultrayt';
+        function isFounderUsername(username) {
+            return String(username || '').toLowerCase().replace(/[\s_-]/g, '') === FOUNDER_USERNAME_KEY;
+        }
+
         function updateLocalLeaderboard() {
             const p = getProfile(); if (!p) return;
             const rows = getLocalLeaderboard().filter(r => r.playerId !== p.playerId);
@@ -1688,30 +1707,90 @@
         }
 
         let onlineSyncTimer = null;
+        let onlineSyncInterval = null;
         let leaderboardRefreshTimer = null;
-        async function syncOnlineLeaderboard() {
-            if (!ONLINE_LEADERBOARD_API) return null;
-            const p = getProfile();
-            if (!p) return null;
+        let onlineSyncInFlight = false;
 
+        async function loadRemoteProgress() {
+            const p = getProfile();
+            if (!p?.username || !p?.authToken || !ONLINE_LEADERBOARD_API) return false;
+
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 4500);
             try {
-                await fetch(ONLINE_LEADERBOARD_API, {
+                const r = await fetch(ONLINE_LEADERBOARD_API, {
+                    method: 'POST',
+                    headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({ action:'load_state', username:p.username, authToken:p.authToken }),
+                    cache: 'no-store',
+                    signal: controller.signal
+                });
+                const data = await r.json();
+                if (!r.ok || !data.success) return false;
+                if (data.gameState) {
+                    const remoteTime = Number(data.gameState.savedAt) || 0;
+                    if (remoteTime && localSaveTime && localSaveTime > remoteTime) {
+                        scheduleOnlineSync();
+                        return false;
+                    }
+                    applyRemoteGameState(data.gameState);
+                    localSaveTime = Math.max(localSaveTime, remoteTime);
+                    return true;
+                }
+                return false;
+            } catch (e) {
+                return false;
+            } finally {
+                clearTimeout(timeout);
+            }
+        }
+
+        async function syncOnlineProgress() {
+            if (onlineSyncInFlight || !ONLINE_LEADERBOARD_API) return false;
+            const p = getProfile();
+            if (!p?.username || !p?.authToken) return false;
+
+            onlineSyncInFlight = true;
+            try {
+                const r = await fetch(ONLINE_LEADERBOARD_API, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
+                        action: 'sync',
                         username: p.username,
                         cash: Math.floor(gameState.cash || 0),
                         punches: Math.floor(gameState.totalPunches || 0),
                         rebirths: Math.floor(gameState.rebirths || 0),
-                        authToken: p.authToken || '',
-                        gameState: { cash: gameState.cash, totalPunches: gameState.totalPunches, rebirths: gameState.rebirths, rebirthTokens: gameState.rebirthTokens, upgrades: gameState.upgrades, bags: gameState.bags, activeBagSkin: gameState.activeBagSkin, tokenShop: gameState.tokenShop, lowGraphics: gameState.lowGraphics, soundEnabled: gameState.soundEnabled }
+                        authToken: p.authToken,
+                        gameState: {
+                            savedAt: localSaveTime,
+                            cash: gameState.cash,
+                            totalPunches: gameState.totalPunches,
+                            rebirths: gameState.rebirths,
+                            rebirthTokens: gameState.rebirthTokens,
+                            upgrades: gameState.upgrades,
+                            bags: gameState.bags,
+                            activeBagSkin: gameState.activeBagSkin,
+                            tokenShop: gameState.tokenShop,
+                            lowGraphics: gameState.lowGraphics,
+                            soundEnabled: gameState.soundEnabled
+                        }
                     })
                 });
+                return r.ok;
+            } catch (e) {
+                return false;
+            } finally {
+                onlineSyncInFlight = false;
+            }
+        }
 
+        async function fetchWorldwideLeaderboard() {
+            if (!ONLINE_LEADERBOARD_API) return null;
+            try {
                 const response = await fetch(ONLINE_LEADERBOARD_API, { cache: 'no-store' });
                 const data = await response.json();
-                if (!data.success) return null;
-
+                if (!response.ok || !data.success) return null;
                 return (data.players || []).map(r => ({
                     username: r.username,
                     cash: Number(r.cash) || 0,
@@ -1726,47 +1805,94 @@
         function scheduleOnlineSync() {
             if (!ONLINE_LEADERBOARD_API) return;
             clearTimeout(onlineSyncTimer);
-            onlineSyncTimer = setTimeout(() => syncOnlineLeaderboard(), 5000);
+            onlineSyncTimer = setTimeout(() => syncOnlineProgress(), 1500);
         }
+
+        function startOnlineSyncLoop() {
+            clearInterval(onlineSyncInterval);
+            onlineSyncInterval = setInterval(() => syncOnlineProgress(), 10000);
+        }
+
+        function sendFinalOnlineSave() {
+            const p = getProfile();
+            if (!p?.username || !p?.authToken || !ONLINE_LEADERBOARD_API) return;
+            try {
+                const payload = JSON.stringify({
+                    action:'sync', username:p.username, authToken:p.authToken,
+                    cash:Math.floor(gameState.cash || 0),
+                    punches:Math.floor(gameState.totalPunches || 0),
+                    rebirths:Math.floor(gameState.rebirths || 0),
+                    gameState:{
+                        savedAt:localSaveTime,
+                        cash:gameState.cash, totalPunches:gameState.totalPunches,
+                        rebirths:gameState.rebirths, rebirthTokens:gameState.rebirthTokens,
+                        upgrades:gameState.upgrades, bags:gameState.bags,
+                        activeBagSkin:gameState.activeBagSkin, tokenShop:gameState.tokenShop,
+                        lowGraphics:gameState.lowGraphics, soundEnabled:gameState.soundEnabled
+                    }
+                });
+                const blob = new Blob([payload], {type:'application/json'});
+                navigator.sendBeacon(ONLINE_LEADERBOARD_API, blob);
+            } catch(e) {}
+        }
+
         function escapeHtml(v) {
             return String(v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
         }
+
         function renderLeaderboard(rows, online=false) {
             const list = document.getElementById('leaderboard-list');
             list.innerHTML = '';
-            if (!rows.length) list.innerHTML = '<div class="text-center text-slate-500 py-8">No leaderboard players yet.</div>';
+            if (!rows.length) {
+                list.innerHTML = '<div class="text-center text-slate-500 py-8">No leaderboard players yet.</div>';
+            }
             rows.slice(0,100).forEach((r,i) => {
                 const d = document.createElement('div');
+                const founder = isFounderUsername(r.username);
                 d.className = 'grid grid-cols-12 gap-2 items-center bg-slate-950 border border-slate-800 rounded-xl px-3 py-3';
-                d.innerHTML = `<div class="col-span-1 font-arcade text-lg ${i<3?'text-yellow-400':'text-slate-500'}">${i+1}</div><div class="col-span-4 font-bold text-sm text-white truncate">${escapeHtml(r.username||'Player')}</div><div class="col-span-2 text-right font-arcade text-yellow-400">${formatNumber(r.cash)}</div><div class="col-span-2 text-right font-arcade text-slate-300">${formatNumber(r.totalPunches)}</div><div class="col-span-3 text-right font-arcade text-purple-300">${formatNumber(r.rebirths||0)}</div>`;
+                d.innerHTML = `
+                    <div class="col-span-1 font-arcade text-lg ${i<3?'text-yellow-400':'text-slate-500'}">${i+1}</div>
+                    <div class="col-span-4 font-bold text-sm truncate ${founder?'text-white':'text-white'}">${escapeHtml(r.username||'Player')} ${founder?'<span class="text-[10px] font-black text-black align-middle">• FOUNDER</span>':''}</div>
+                    <div class="col-span-2 text-right font-arcade text-yellow-400">${formatNumber(r.cash)}</div>
+                    <div class="col-span-2 text-right font-arcade text-slate-300">${formatNumber(r.totalPunches)}</div>
+                    <div class="col-span-3 text-right font-arcade text-purple-300">${formatNumber(r.rebirths||0)}</div>`;
                 list.appendChild(d);
             });
-            document.getElementById('leaderboard-status').textContent = online ? 'Worldwide leaderboard' : 'Local preview — Cloudflare API will make this worldwide.';
+            document.getElementById('leaderboard-status').textContent = online ? 'Worldwide leaderboard' : 'Local saved preview';
         }
-        async function openLeaderboard() {
-            updateLocalLeaderboard();
-            clearInterval(leaderboardRefreshTimer);
-            leaderboardRefreshTimer = setInterval(async () => {
-                if (document.getElementById('leaderboard-modal').classList.contains('hidden')) return;
-                const rows = await syncOnlineLeaderboard();
-                if (rows) renderLeaderboard(rows, true);
-            }, 3000);
-            document.getElementById('leaderboard-modal').classList.remove('hidden');
-            renderLeaderboard(getLocalLeaderboard(), false);
 
-            if (ONLINE_LEADERBOARD_API) {
-                document.getElementById('leaderboard-status').textContent = 'Loading worldwide leaderboard...';
-                const onlineRows = await syncOnlineLeaderboard();
-                if (onlineRows) {
-                    renderLeaderboard(onlineRows, true);
-                } else {
-                    document.getElementById('leaderboard-status').textContent = 'Could not connect to worldwide leaderboard. Showing local scores.';
-                }
+        async function openLeaderboard() {
+            const modal = document.getElementById('leaderboard-modal');
+            modal.classList.remove('hidden');
+            clearInterval(leaderboardRefreshTimer);
+            updateLocalLeaderboard();
+            renderLeaderboard(getLocalLeaderboard(), false);
+            document.getElementById('leaderboard-status').textContent = 'Loading worldwide leaderboard...';
+
+            const onlineRows = await fetchWorldwideLeaderboard();
+            if (onlineRows) {
+                renderLeaderboard(onlineRows, true);
+            } else {
+                document.getElementById('leaderboard-status').textContent = 'Worldwide server unavailable — showing saved local scores.';
             }
+
+            leaderboardRefreshTimer = setInterval(async () => {
+                if (modal.classList.contains('hidden')) return;
+                const rows = await fetchWorldwideLeaderboard();
+                if (rows) renderLeaderboard(rows, true);
+            }, 10000);
         }
-        function ensureProfile() {
+
+        async function ensureProfile() {
             updateSettingsUsername();
-            if (!getProfile()) openUsernameModal();
+            const p = getProfile();
+            if (!p) {
+                openUsernameModal();
+                return false;
+            }
+            await loadRemoteProgress();
+            updateSettingsUsername();
+            return true;
         }
 
         // Compact number display without changing the game's calculations.
@@ -1784,7 +1910,22 @@
         };
 
         const _saveGameOriginal = saveGame;
-        saveGame = function() { _saveGameOriginal(); updateLocalLeaderboard(); scheduleOnlineSync(); };
+        saveGame = function() {
+            _saveGameOriginal();
+            try { updateLocalLeaderboard(); } catch (e) {}
+            scheduleOnlineSync();
+        };
+
+        window.addEventListener('pagehide', () => {
+            try { _saveGameOriginal(); } catch(e) {}
+            sendFinalOnlineSave();
+        });
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden') {
+                try { _saveGameOriginal(); } catch(e) {}
+                sendFinalOnlineSave();
+            }
+        });
 
         document.getElementById('btn-change-username').addEventListener('click', () => openUsernameModal('change'));
         document.getElementById('btn-close-leaderboard').addEventListener('click', () => { document.getElementById('leaderboard-modal').classList.add('hidden'); clearInterval(leaderboardRefreshTimer); });
@@ -1793,14 +1934,15 @@
         document.getElementById('btn-leaderboard-desktop')?.addEventListener('click', openLeaderboard);
 
 
-        window.onload = function() {
-                        loadGame();
+        window.onload = async function() {
+            loadGame();
             applyGraphicsMode();
-            ensureProfile();
+            await ensureProfile();
             resizeCanvas();
             calculateStats();
             renderShop();
             updateRebirthUI();
+            startOnlineSyncLoop();
             requestAnimationFrame(updateAndRender);
         };
     </script>
