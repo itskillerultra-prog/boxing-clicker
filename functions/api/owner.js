@@ -71,7 +71,8 @@ export async function onRequest(context) {
             }
 
             const player = await env.DB.prepare(
-                `SELECT username, cash, punches, rebirths, game_state
+                `SELECT username, cash, punches, rebirths, rebirths,
+                        rebirths, game_state
                  FROM leaderboard
                  WHERE username=?`
             ).bind(targetUsername).first();
@@ -114,13 +115,6 @@ export async function onRequest(context) {
                 return json({
                     success: false,
                     error: "Enter a player username."
-                }, 400);
-            }
-
-            if (targetUsername === OWNER_USERNAME) {
-                return json({
-                    success: false,
-                    error: "Use the owner account separately."
                 }, 400);
             }
 
@@ -314,13 +308,6 @@ export async function onRequest(context) {
                 return json({
                     success: false,
                     error: "Enter a player username."
-                }, 400);
-            }
-
-            if (targetUsername === OWNER_USERNAME) {
-                return json({
-                    success: false,
-                    error: "Use the owner account separately."
                 }, 400);
             }
 
