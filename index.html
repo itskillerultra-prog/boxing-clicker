@@ -76,30 +76,6 @@
         @media (min-width: 701px) and (max-width: 1100px) {
             #game-app aside { width: 360px !important; }
         }
-
-
-        /* ===== LIGHTWEIGHT 3D COMBAT LAYER ===== */
-        #combat-canvas { position:absolute; inset:0; width:100%; height:100%; min-height:320px; z-index:5; touch-action:none; display:block; pointer-events:auto; }
-        #game-canvas { opacity:0; }
-        #combat-hud { position:absolute; inset:0; z-index:8; pointer-events:none; }
-        #combat-boss-card { position:absolute; top:86px; left:50%; transform:translateX(-50%); width:min(440px,calc(100% - 32px)); padding:10px 14px; border:1px solid rgba(148,163,184,.25); border-radius:16px; background:rgba(2,6,23,.78); backdrop-filter:blur(8px); box-shadow:0 12px 40px rgba(0,0,0,.28); }
-        #combat-boss-card.hidden { display:none; }
-        #boss-hp-track { height:10px; border-radius:999px; background:#111827; overflow:hidden; border:1px solid #334155; }
-        #boss-hp-fill { height:100%; width:0%; background:linear-gradient(90deg,#ef4444,#f97316,#eab308); transition:width .12s linear; }
-        #combat-banner { position:absolute; top:40%; left:50%; transform:translate(-50%,-50%); text-align:center; font-family:Teko,sans-serif; font-size:clamp(38px,7vw,76px); font-weight:900; letter-spacing:3px; text-shadow:0 5px 25px rgba(0,0,0,.7); opacity:0; }
-        #combat-banner.show { animation:combatBanner .9s ease-out both; }
-        #combat-area-pill { position:absolute; top:142px; left:50%; transform:translateX(-50%); padding:5px 11px; border-radius:999px; background:rgba(15,23,42,.78); border:1px solid rgba(148,163,184,.22); font-size:10px; font-weight:800; letter-spacing:1.5px; color:#cbd5e1; }
-        #combat-combo { position:absolute; right:18px; bottom:64px; text-align:right; font-family:Teko,sans-serif; font-weight:900; line-height:.8; }
-        #combat-combo.hidden { display:none; }
-        #combat-combo-number { font-size:clamp(44px,8vw,72px); color:#fbbf24; text-shadow:0 4px 18px rgba(251,191,36,.25); }
-        #combat-combo-label { font-size:15px; letter-spacing:2px; color:#cbd5e1; }
-        #boss-ready { position:absolute; left:18px; bottom:64px; max-width:250px; padding:10px 12px; border-radius:14px; background:rgba(2,6,23,.76); border:1px solid rgba(239,68,68,.35); color:#fecaca; font-size:11px; font-weight:800; }
-        #boss-ready.hidden { display:none; }
-        @keyframes combatBanner { 0%{opacity:0;transform:translate(-50%,-50%) scale(.75)} 18%{opacity:1} 72%{opacity:1;transform:translate(-50%,-50%) scale(1.04)} 100%{opacity:0;transform:translate(-50%,-50%) scale(1.12)} }
-        body.low-performance-mode #combat-canvas { image-rendering:auto; }
-        body.low-performance-mode #combat-boss-card { backdrop-filter:none; box-shadow:none; }
-        body.low-performance-mode #combat-combo-number { text-shadow:none; }
-        @media (max-width:700px){ #combat-boss-card{top:58px} #combat-area-pill{top:116px} #combat-combo{bottom:52px;right:12px} #boss-ready{bottom:52px;left:12px} }
 </style>
 </head>
 <body class="h-screen w-screen flex flex-col justify-between overflow-hidden bg-slate-950">
@@ -174,29 +150,9 @@
 
             <!-- CANVAS GAME AREA -->
             <canvas id="game-canvas" class="w-full h-full cursor-pointer"></canvas>
-            <canvas id="combat-canvas" aria-label="Lightweight 3D boxing combat scene"></canvas>
-            <div id="combat-hud">
-                <div id="combat-boss-card" class="hidden">
-                    <div class="flex items-center justify-between gap-3">
-                        <div class="min-w-0"><div id="boss-name" class="font-arcade text-xl font-bold text-red-300 truncate">ZOMBIE BAG BOSS</div><div id="boss-stage" class="text-[9px] text-slate-400 uppercase tracking-widest">BOSS ENCOUNTER</div></div>
-                        <div id="boss-hp-text" class="font-arcade text-lg text-white">0 / 0</div>
-                    </div>
-                    <div class="mt-2" id="boss-hp-track"><div id="boss-hp-fill"></div></div>
-                </div>
-                <div id="combat-area-pill">TRAINING GYM</div>
-                <div id="combat-punch-controls" style="position:absolute;left:50%;bottom:18px;transform:translateX(-50%);display:flex;gap:8px;pointer-events:auto;z-index:20;flex-wrap:wrap;justify-content:center;width:min(520px,calc(100% - 24px));">
-                    <button id="btn-jab" type="button" style="min-width:88px;padding:10px 14px;border-radius:14px;border:1px solid rgba(251,191,36,.45);background:rgba(15,23,42,.9);color:#fbbf24;font-weight:900;">JAB</button>
-                    <button id="btn-hook" type="button" style="min-width:88px;padding:10px 14px;border-radius:14px;border:1px solid rgba(248,113,113,.45);background:rgba(15,23,42,.9);color:#f87171;font-weight:900;">HOOK</button>
-                    <button id="btn-uppercut" type="button" style="min-width:88px;padding:10px 14px;border-radius:14px;border:1px solid rgba(96,165,250,.45);background:rgba(15,23,42,.9);color:#60a5fa;font-weight:900;">UPPERCUT</button>
-                    <button id="btn-heavy" type="button" style="min-width:88px;padding:10px 14px;border-radius:14px;border:1px solid rgba(192,132,252,.45);background:rgba(15,23,42,.9);color:#c084fc;font-weight:900;">HEAVY</button>
-                </div>
-                <div id="combat-banner"></div>
-                <div id="boss-ready" class="hidden">BOSS INCOMING — keep punching to break the bag!</div>
-                <div id="combat-combo" class="hidden"><div id="combat-combo-number">0</div><div id="combat-combo-label">HIT COMBO</div></div>
-            </div>
 
             <!-- HINT -->
-            <div class="absolute bottom-2 md:bottom-20 pointer-events-none text-slate-500 text-xs tracking-wider uppercase flex items-center gap-2">
+            <div class="absolute bottom-3 pointer-events-none text-slate-500 text-xs tracking-wider uppercase flex items-center gap-2">
                 <i class="fas fa-hand-pointer animate-pulse"></i> Tap Punching Bag to Attack
             </div>
         </main>
@@ -232,7 +188,7 @@
                             </div>
                             <div id="rebirth-status" class="text-[11px] text-slate-400">Reach $1M to rebirth</div>
                         </div>
-                        <button id="btn-rebirth" class="px-3 py-2 rounded-xl text-xs font-black bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed">
+                        <button id="btn-rebirth" type="button" class="px-3 py-2 rounded-xl text-xs font-black bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed">
                             REBIRTH
                         </button>
                     </div>
@@ -484,7 +440,6 @@
             rebirthTokens: 0,
             lowGraphics: false,
             soundEnabled: true,
-            combat: { area: 1, bossIndex: 0, bossActive: false, bossHp: 0, bossMaxHp: 0, combo: 0, comboTimer: 0, totalBossesDefeated: 0, nextBossPunches: 500, unlockedAreas: 1, bossReady: false },
             activeBagSkin: 'canvas',
             upgrades: {
                 // Tap Power (CPC)
@@ -848,8 +803,7 @@
                 activeBagSkin: 'canvas',
                 tokenShop: resetTokenShop,
                 lowGraphics: !!gameState.lowGraphics,
-                soundEnabled: gameState.soundEnabled !== false,
-                combat: { area: 1, bossIndex: 0, bossActive: false, bossHp: 0, bossMaxHp: 0, combo: 0, comboTimer: 0, totalBossesDefeated: 0, nextBossPunches: 500, unlockedAreas: 1, bossReady: false }
+                soundEnabled: gameState.soundEnabled !== false
             };
 
             let onlineResetOK = false;
@@ -1439,13 +1393,24 @@
         }
 
         async function performRebirth() {
-            const { plan } = getAffordableRebirthPlan();
-            if (!plan.count) return;
+            const plan = getAffordableRebirthPlan();
+            if (!plan || plan.count <= 0) {
+                updateRebirthUI();
+                return;
+            }
 
-            abortOnlineSync();
+            // Do not stop the permanent online sync loop during a rebirth.
+            // Only cancel an older in-flight save so it cannot overwrite the
+            // newly rebirthed state.
+            try { if (onlineSyncController) onlineSyncController.abort(); } catch (e) {}
+            onlineSyncController = null;
+            onlineSyncInFlight = false;
+            clearTimeout(onlineSyncTimer);
 
-            gameState.rebirths += plan.count;
-            gameState.rebirthTokens += plan.totalTokens;
+            // Apply the rebirth locally first so the button always produces
+            // an immediate, visible result even if the server is unavailable.
+            gameState.rebirths = Math.max(0, Math.floor(gameState.rebirths)) + plan.count;
+            gameState.rebirthTokens = Math.max(0, Math.floor(gameState.rebirthTokens)) + plan.totalTokens;
 
             // Spend the exact total cost and keep any cash left after the bulk rebirth.
             gameState.cash = Math.max(0, plan.remainingCash);
@@ -1456,18 +1421,25 @@
             gameState.frenzyMeter = 0;
 
             for (const key in gameState.upgrades) {
-                gameState.upgrades[key].count = 0;
+                if (gameState.upgrades[key]) gameState.upgrades[key].count = 0;
             }
+
             invalidateStatsCache();
 
-            document.getElementById('rebirth-modal').classList.add('hidden');
-            playSound('upgrade');
+            const modal = document.getElementById('rebirth-modal');
+            if (modal) modal.classList.add('hidden');
+
+            try { initAudio(); playSound('upgrade'); } catch (e) {}
             calculateStats(true);
             renderShop();
-            saveGame();
-            updateRebirthUI();
             updateTokenShopStates();
-            await syncOnlineProgress();
+            updateRebirthUI();
+
+            // Save locally immediately. Then try the server without allowing
+            // a server error to make the rebirth look broken.
+            saveGame();
+            try { await syncOnlineProgress(); } catch (e) {}
+            updateRebirthUI();
         }
 
         document.getElementById('btn-rebirth').addEventListener('click', openRebirthModal);
@@ -1716,8 +1688,7 @@
                     rebirthTokens: gameState.rebirthTokens,
                     tokenShop: gameState.tokenShop,
                     lowGraphics: gameState.lowGraphics,
-                    soundEnabled: gameState.soundEnabled,
-                    combat: gameState.combat ? JSON.parse(JSON.stringify(gameState.combat)) : null
+                    soundEnabled: gameState.soundEnabled
                 };
                 localStorage.setItem('boxing_clicker_save_v2', JSON.stringify(data));
             } catch (e) {}
@@ -1735,7 +1706,6 @@
                     gameState.rebirthTokens = Math.max(0, Math.floor(data.rebirthTokens || 0));
                     gameState.lowGraphics = !!data.lowGraphics;
                     gameState.soundEnabled = data.soundEnabled !== false;
-                    if (data.combat) { gameState.combat = Object.assign(gameState.combat || {}, data.combat); }
                     if (data.tokenShop) {
                         for (const k in data.tokenShop) {
                             if (gameState.tokenShop[k]) gameState.tokenShop[k].count = Math.max(0, Math.min(gameState.tokenShop[k].max, Math.floor(data.tokenShop[k].count || 0)));
@@ -1926,7 +1896,6 @@
                 if (remote.activeBagSkin && gameState.bags[remote.activeBagSkin]) gameState.activeBagSkin = remote.activeBagSkin;
                 if (remote.lowGraphics !== undefined) gameState.lowGraphics = !!remote.lowGraphics;
                 if (remote.soundEnabled !== undefined) gameState.soundEnabled = remote.soundEnabled !== false;
-                if (remote.combat && typeof remote.combat === 'object') gameState.combat = Object.assign(gameState.combat || {}, remote.combat);
                 if (remote.upgrades) for (const k in remote.upgrades) if (gameState.upgrades[k]) gameState.upgrades[k].count = Math.max(0, Math.floor(Number(remote.upgrades[k].count) || 0));
                 if (remote.bags) for (const k in remote.bags) if (gameState.bags[k]) gameState.bags[k].owned = !!remote.bags[k].owned;
                 if (remote.tokenShop) for (const k in remote.tokenShop) if (gameState.tokenShop[k]) gameState.tokenShop[k].count = Math.max(0, Math.min(gameState.tokenShop[k].max, Math.floor(Number(remote.tokenShop[k].count) || 0)));
@@ -2177,8 +2146,7 @@
                             activeBagSkin: gameState.activeBagSkin,
                             tokenShop: gameState.tokenShop,
                             lowGraphics: gameState.lowGraphics,
-                            soundEnabled: gameState.soundEnabled,
-                            combat: gameState.combat
+                            soundEnabled: gameState.soundEnabled
                         }
                     }),
                     signal: controller.signal
@@ -2198,7 +2166,8 @@
             onlineSyncController = null;
             onlineSyncInFlight = false;
             clearTimeout(onlineSyncTimer);
-            clearInterval(onlineSyncInterval);
+            // Keep the recurring online sync interval alive.
+            // Rebirth/reset operations should not permanently disable syncing.
         }
 
         async function fetchWorldwideLeaderboard() {
@@ -2244,8 +2213,7 @@
                         rebirths:gameState.rebirths, rebirthTokens:gameState.rebirthTokens,
                         upgrades:gameState.upgrades, bags:gameState.bags,
                         activeBagSkin:gameState.activeBagSkin, tokenShop:gameState.tokenShop,
-                        lowGraphics:gameState.lowGraphics, soundEnabled:gameState.soundEnabled,
-                        combat:gameState.combat
+                        lowGraphics:gameState.lowGraphics, soundEnabled:gameState.soundEnabled
                     }
                 });
                 const blob = new Blob([payload], {type:'application/json'});
@@ -2384,157 +2352,5 @@
             requestAnimationFrame(updateAndRender);
         };
     </script>
-\n<script>
-// ===== LIGHTWEIGHT 3D BOXING / BOSS SYSTEM =====
-(function(){
-  const cc=document.getElementById('combat-canvas'); if(!cc) return;
-  const cctx=cc.getContext('2d',{alpha:true});
-  const bossCard=document.getElementById('combat-boss-card'), bossName=document.getElementById('boss-name'), bossStage=document.getElementById('boss-stage'), bossHpFill=document.getElementById('boss-hp-fill'), bossHpText=document.getElementById('boss-hp-text');
-  const areaPill=document.getElementById('combat-area-pill'), banner=document.getElementById('combat-banner'), ready=document.getElementById('boss-ready'), comboBox=document.getElementById('combat-combo'), comboNum=document.getElementById('combat-combo-number');
-  const originalCanvas=document.getElementById('game-canvas');
-  const combat=gameState.combat || (gameState.combat={area:1,bossIndex:0,bossActive:false,bossHp:0,bossMaxHp:0,combo:0,comboTimer:0,totalBossesDefeated:0,nextBossPunches:25,unlockedAreas:1,bossReady:false});
-  const bosses=[
-    {name:'ZOMBIE BAG BOSS',type:'zombie',area:'ABANDONED GYM',hp:25000,reward:250000,color:'#86efac'},
-    {name:'IRON OGRE',type:'ogre',area:'IRON WAREHOUSE',hp:900000,reward:12000000,color:'#94a3b8'},
-    {name:'CYBER BEAST',type:'cyber',area:'NEON ARENA',hp:45000000,reward:750000000,color:'#22d3ee'},
-    {name:'SHADOW CHAMPION',type:'shadow',area:'NIGHT ARENA',hp:2500000000,reward:50000000000,color:'#a78bfa'},
-    {name:'TITAN OF THE RING',type:'titan',area:'LEGENDARY STADIUM',hp:200000000000,reward:5000000000000,color:'#fbbf24'}
-  ];
-  const areas=['TRAINING GYM','ABANDONED GYM','IRON WAREHOUSE','NEON ARENA','NIGHT ARENA','LEGENDARY STADIUM'];
-  let W=1,H=1,dpr=1,last=performance.now(),flash=0,shake=0,punchAnim=0,bannerTimer=0,lastHudAt=0,bossSpawn=0;
-  function resize(){const r=cc.getBoundingClientRect();dpr=Math.min(2,window.devicePixelRatio||1);W=Math.max(1,r.width);H=Math.max(1,r.height);cc.width=Math.floor(W*dpr);cc.height=Math.floor(H*dpr);cctx.setTransform(dpr,0,0,dpr,0,0);}
-  resize(); window.addEventListener('resize',resize);
-  function fmt(v){ if(typeof formatNumber==='function') return formatNumber(v); return Math.floor(v).toLocaleString(); }
-  function showBanner(text){ banner.textContent=text; banner.classList.remove('show'); void banner.offsetWidth; banner.classList.add('show'); bannerTimer=1; }
-  function bossDef(){return bosses[Math.min(combat.bossIndex,bosses.length-1)];}
-  function updateHud(){
-    const b=bossDef();
-    areaPill.textContent=areas[Math.min(combat.area,areas.length-1)];
-    if(combat.bossActive){
-      bossCard.classList.remove('hidden'); bossName.textContent=b.name; bossStage.textContent=b.area+' • BOSS';
-      const pct=Math.max(0,Math.min(1,combat.bossHp/Math.max(1,combat.bossMaxHp))); bossHpFill.style.width=(pct*100)+'%'; bossHpText.textContent=fmt(combat.bossHp)+' / '+fmt(combat.bossMaxHp);
-      ready.classList.add('hidden'); comboBox.classList.toggle('hidden',combat.combo<2); comboNum.textContent=String(combat.combo);
-    }else{ bossCard.classList.add('hidden'); comboBox.classList.toggle('hidden',combat.combo<2); comboNum.textContent=String(combat.combo); if(combat.bossReady) ready.classList.remove('hidden'); else ready.classList.add('hidden'); }
-  }
-  function startBoss(){
-    if(combat.bossActive) return;
-    const b=bossDef(); combat.bossActive=true; combat.bossReady=false; bossSpawn=1; combat.bossHp=b.hp*(1+Math.max(0,combat.bossIndex-2)*4); combat.bossMaxHp=combat.bossHp; combat.combo=0; combat.comboTimer=0;
-    showBanner('⚠ '+b.name+' ⚠'); updateHud();
-    if(typeof playSound==='function') try{playSound('punch')}catch(e){}
-    saveGame();
-  }
-  function defeatBoss(){
-    const b=bossDef(); combat.bossActive=false; bossSpawn=0; combat.totalBossesDefeated++; combat.area=Math.min(combat.area+1,areas.length-1); combat.unlockedAreas=Math.max(combat.unlockedAreas,combat.area); combat.bossIndex++; combat.nextBossPunches=Math.floor(Math.max(gameState.totalPunches+1800,gameState.totalPunches*1.7)); gameState.cash+=b.reward*(1+Math.max(0,combat.totalBossesDefeated-1)*2);
-    showBanner('🏆 BOSS DEFEATED!');
-    if(typeof spawnFloatingText==='function' && !gameState.lowGraphics) spawnFloatingText(W/2,H*.34,'+$'+fmt(b.reward),'#fbbf24');
-    if(typeof calculateStats==='function') calculateStats(true); if(typeof renderShop==='function') renderShop(); saveGame(); updateHud();
-  }
-  function damageBoss(mult=1){
-    if(!combat.bossActive) return;
-    const bossMult=1+((gameState.tokenShop?.bossDamage?.count||0)*.02);
-    const damage=Math.max(1,gameState.cpcMultiplier*mult*bossMult); combat.bossHp=Math.max(0,combat.bossHp-damage); flash=1; shake=Math.min(12,shake+3); punchAnim=1;
-    if(combat.bossHp<=0) defeatBoss(); else updateHud();
-  }
-  function combatPunch(x,y,isAuto){
-    if(typeof triggerHit==='function') triggerHit(x,y,isAuto,false);
-  }
-  function combatMove(kind){
-    const mult = kind==='jab' ? 1 : kind==='hook' ? 1.25 : kind==='uppercut' ? 1.55 : 2.1;
-    window.__combatPunchMultiplier = mult;
-    if(typeof triggerHit==='function') triggerHit(W/2, H*.44, false, false);
-    window.__combatPunchMultiplier = 1;
-    punchAnim = Math.min(1.2, punchAnim + .55);
-    flash = Math.min(1, flash + .25);
-    updateHud();
-  }
-  document.getElementById('btn-jab')?.addEventListener('click',()=>combatMove('jab'));
-  document.getElementById('btn-hook')?.addEventListener('click',()=>combatMove('hook'));
-  document.getElementById('btn-uppercut')?.addEventListener('click',()=>combatMove('uppercut'));
-  document.getElementById('btn-heavy')?.addEventListener('click',()=>combatMove('heavy'));
-  // Wrap the existing hit function so the original economy remains intact.
-  if(typeof window.triggerHit==='function'){}
-  const originalTrigger=triggerHit;
-  triggerHit=function(x,y,isAuto=false,skipUiSave=false){
-    originalTrigger(x,y,isAuto,skipUiSave);
-    if(combat.bossActive) damageBoss(isAuto ? 0.18 : (Number(window.__combatPunchMultiplier) || 1));
-    else if(!isAuto){
-      combat.combo++; combat.comboTimer=2.2;
-      if(combat.combo>=3 && typeof spawnFloatingText==='function' && !gameState.lowGraphics) spawnFloatingText(x||W/2,y||H/2,'COMBO x'+combat.combo,'#f59e0b');
-      if(gameState.totalPunches>=combat.nextBossPunches){ combat.bossReady=true; startBoss(); }
-      updateHud();
-    }
-  };
-  // Redirect pointer input to the 3D layer.
-  cc.addEventListener('pointerdown',e=>{e.preventDefault();const r=cc.getBoundingClientRect();const x=e.clientX-r.left,y=e.clientY-r.top;const cx=W/2,cy=H*.48;const hitRadius=Math.min(W,H)*.42; if(Math.hypot(x-cx,(y-cy)*.82)<hitRadius){combatPunch(x,y,false);}});
-  // Draw a lightweight pseudo-3D gym: perspective floor, lighting, bag and boss.
-  function poly(points,fill,stroke){cctx.beginPath();points.forEach((p,i)=>i?cctx.lineTo(p[0],p[1]):cctx.moveTo(p[0],p[1]));cctx.closePath();if(fill){cctx.fillStyle=fill;cctx.fill()}if(stroke){cctx.strokeStyle=stroke;cctx.stroke()}}
-  function circle(x,y,r,fill){cctx.beginPath();cctx.arc(x,y,r,0,Math.PI*2);cctx.fillStyle=fill;cctx.fill()}
-  function drawBag(cx,cy,scale){
-    const w=115*scale,h=205*scale,top=cy-h*.42; cctx.save(); cctx.translate(cx,cy); cctx.rotate(Math.sin(punchAnim*3)*.08);
-    cctx.strokeStyle='#64748b';cctx.lineWidth=4*scale;cctx.beginPath();cctx.moveTo(0,-h*.7);cctx.lineTo(0,-h*.42);cctx.stroke();
-    cctx.fillStyle='#94a3b8';cctx.fillRect(-10*scale,-h*.73,20*scale,12*scale);
-    const g=cctx.createLinearGradient(-w/2,0,w/2,0);g.addColorStop(0,'#334155');g.addColorStop(.45,'#cbd5e1');g.addColorStop(1,'#1e293b');cctx.fillStyle=g;
-    cctx.beginPath();cctx.roundRect(-w/2,top,w,h,22*scale);cctx.fill();
-    cctx.fillStyle='#475569';cctx.fillRect(-w/2,top,w,18*scale);
-    cctx.fillStyle='rgba(255,255,255,.16)';cctx.fillRect(-w*.28,top+20*scale,w*.12,h*.7);
-    cctx.restore();
-  }
-  function drawZombie(cx,cy,scale,t){
-    const bob=Math.sin(t*5)*4*scale; const s=scale; cctx.save(); cctx.translate(cx,cy+bob);
-    // shadow
-    cctx.globalAlpha=.28; cctx.fillStyle='#000';cctx.beginPath();cctx.ellipse(0,125*s,85*s,18*s,0,0,Math.PI*2);cctx.fill();cctx.globalAlpha=1;
-    // legs
-    cctx.fillStyle='#334155';cctx.fillRect(-46*s,55*s,30*s,72*s);cctx.fillRect(16*s,55*s,30*s,72*s);
-    // body 3D gradient
-    const g=cctx.createLinearGradient(-65*s,0,65*s,0);g.addColorStop(0,'#14532d');g.addColorStop(.5,'#86efac');g.addColorStop(1,'#166534');cctx.fillStyle=g;cctx.beginPath();cctx.roundRect(-62*s,-30*s,124*s,105*s,28*s);cctx.fill();
-    // arms
-    cctx.strokeStyle='#4ade80';cctx.lineWidth=24*s;cctx.lineCap='round';cctx.beginPath();cctx.moveTo(-54*s,-5*s);cctx.lineTo(-100*s,42*s);cctx.moveTo(54*s,-5*s);cctx.lineTo(100*s,35*s);cctx.stroke();
-    // head
-    const hg=cctx.createRadialGradient(-12*s,-88*s,5*s,15*s,-72*s,55*s);hg.addColorStop(0,'#bbf7d0');hg.addColorStop(1,'#166534');cctx.fillStyle=hg;circle(0,-80*s,50*s,hg);
-    // hair/eyes
-    cctx.fillStyle='#0f172a';cctx.beginPath();cctx.arc(-18*s,-88*s,7*s,0,Math.PI*2);cctx.arc(18*s,-88*s,7*s,0,Math.PI*2);cctx.fill();
-    cctx.strokeStyle='#dcfce7';cctx.lineWidth=4*s;cctx.beginPath();cctx.moveTo(-20*s,-64*s);cctx.lineTo(20*s,-64*s);cctx.stroke();
-    // depth rim
-    cctx.strokeStyle='rgba(255,255,255,.22)';cctx.lineWidth=3*s;cctx.beginPath();cctx.roundRect(-62*s,-30*s,124*s,105*s,28*s);cctx.stroke();
-    cctx.restore();
-  }
-  function drawBoss(cx,cy,s,t){ const b=bossDef(); if(b.type==='zombie') drawZombie(cx,cy,s,t); else {
-      // generic boss with distinct color and heavy silhouette
-      cctx.save();cctx.translate(cx,cy+Math.sin(t*4)*3);cctx.scale(s,s);cctx.globalAlpha=.98;
-      const g=cctx.createLinearGradient(-70,0,70,0);g.addColorStop(0,b.color);g.addColorStop(.5,'#f8fafc');g.addColorStop(1,b.color);cctx.fillStyle=g;cctx.beginPath();cctx.roundRect(-70,-40,140,120,30);cctx.fill();circle(0,-92,55,b.color);cctx.fillStyle='#0f172a';circle(-20,-100,8,'#0f172a');circle(20,-100,8,'#0f172a');cctx.strokeStyle=b.color;cctx.lineWidth=26;cctx.beginPath();cctx.moveTo(-58,-5);cctx.lineTo(-110,55);cctx.moveTo(58,-5);cctx.lineTo(110,55);cctx.stroke();cctx.restore();
-    }}
-  function render(now){
-    const dt=Math.min(.05,(now-last)/1000);last=now; if(combat.comboTimer>0){combat.comboTimer-=dt;if(combat.comboTimer<=0){combat.combo=0;updateHud();}}
-    punchAnim=Math.max(0,punchAnim-dt*4);flash=Math.max(0,flash-dt*4);shake=Math.max(0,shake-dt*18);
-    const quality=gameState.lowGraphics?0.72:1; const t=now/1000; cctx.clearRect(0,0,W,H);
-    const grd=cctx.createLinearGradient(0,0,0,H);grd.addColorStop(0,'rgba(2,6,23,.18)');grd.addColorStop(.55,'rgba(15,23,42,.05)');grd.addColorStop(1,'rgba(0,0,0,.42)');cctx.fillStyle=grd;cctx.fillRect(0,0,W,H);
-    // wall lights
-    if(!gameState.lowGraphics){for(let i=0;i<5;i++){const x=W*(.1+i*.2);cctx.fillStyle='rgba(96,165,250,.07)';cctx.beginPath();cctx.arc(x,H*.16,50,0,Math.PI*2);cctx.fill();}}
-    // perspective floor
-    const horizon=H*.58; poly([[0,horizon],[W,horizon],[W,H],[0,H]],'rgba(15,23,42,.9)'); cctx.strokeStyle='rgba(100,116,139,.18)';cctx.lineWidth=1;
-    for(let i=-6;i<=6;i++){const bx=W/2+i*W*.13;cctx.beginPath();cctx.moveTo(W/2+(bx-W/2)*.08,horizon);cctx.lineTo(bx,H);cctx.stroke();}
-    for(let j=1;j<7;j++){const y=horizon+(H-horizon)*(j/7)**1.7;cctx.beginPath();cctx.moveTo(0,y);cctx.lineTo(W,y);cctx.stroke();}
-    const cx=W/2+(shake>0 ? (Math.random()-.5)*shake : 0), bagY=H*.44;
-    if(combat.bossActive){ drawBag(cx,bagY,quality*.9); drawBoss(cx,bagY-25 + bossSpawn*150,quality*(W<500?.8:1),t); bossSpawn=Math.max(0,bossSpawn-dt*1.8); } else drawBag(cx,bagY,quality);
-    // Visible boxing gloves / punch animation
-    if(punchAnim>0){
-      const side = Math.sin(now/70) >= 0 ? 1 : -1;
-      const gx = cx + side * (90 + punchAnim*55);
-      const gy = bagY + 10 - punchAnim*45;
-      cctx.save();
-      cctx.globalAlpha = Math.min(1, punchAnim);
-      cctx.fillStyle = side > 0 ? '#ef4444' : '#3b82f6';
-      cctx.beginPath(); cctx.arc(gx,gy,26,0,Math.PI*2); cctx.fill();
-      cctx.fillStyle = 'rgba(255,255,255,.22)'; cctx.beginPath(); cctx.arc(gx-8,gy-8,9,0,Math.PI*2); cctx.fill();
-      cctx.restore();
-    }
-    // gloves / impact ring
-    if(punchAnim>0){const r=(1-punchAnim)*70+20;cctx.globalAlpha=punchAnim*.45;cctx.strokeStyle='#fbbf24';cctx.lineWidth=4;cctx.beginPath();cctx.arc(cx,bagY,r,0,Math.PI*2);cctx.stroke();cctx.globalAlpha=1;}
-    if(flash>0){cctx.fillStyle='rgba(248,113,113,'+(flash*.08)+')';cctx.fillRect(0,0,W,H);}
-    if(now-lastHudAt>90){lastHudAt=now;updateHud();} requestAnimationFrame(render);
-  }
-  updateHud(); requestAnimationFrame(render);
-})();
-</script>
 </body>
 </html>
