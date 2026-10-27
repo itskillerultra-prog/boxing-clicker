@@ -59,6 +59,14 @@
         body.low-performance-mode #frenzy-banner { display: none !important; }
         body.low-performance-mode #frenzy-container { display: none !important; }
         body.low-performance-mode * { scroll-behavior: auto !important; }
+        #optimization-tip {
+            position: fixed;
+            right: 14px;
+            bottom: 14px;
+            z-index: 120;
+            width: min(340px, calc(100vw - 28px));
+        }
+        #optimization-tip.hidden { display: none; }
         @media (max-width: 700px) {
             #shop-container { min-height: 0; }
             #settings-modal > div, #username-modal > div, #leaderboard-modal > div { max-height: 92vh; overflow-y: auto; }
@@ -317,6 +325,22 @@
         </div>
     </div>
 
+    <!-- Performance Tip -->
+    <div id="optimization-tip" class="hidden">
+        <button id="btn-optimization-tip" type="button"
+            class="w-full text-left bg-slate-900/95 border border-blue-700/60 rounded-2xl px-4 py-3 shadow-2xl">
+            <div class="flex items-start gap-3">
+                <div class="w-9 h-9 rounded-xl bg-blue-600/20 text-blue-400 flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-gauge-high"></i>
+                </div>
+                <div class="min-w-0">
+                    <div class="font-bold text-sm text-white">Want to make your game smooth?</div>
+                    <div class="text-xs text-slate-400 mt-1">Go to Settings → Low-End Optimization and turn it ON.</div>
+                </div>
+            </div>
+        </button>
+    </div>
+
     <!-- SETTINGS & ABOUT MODAL -->
     <div id="settings-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-6 relative shadow-2xl space-y-6">
@@ -376,7 +400,7 @@
             <div class="space-y-3 border-t border-slate-800 pt-4">
                 <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400">Player</h4>
                 <div class="flex justify-between items-center bg-slate-950 p-3 rounded-xl border border-slate-800">
-                    <div><div class="font-semibold text-sm">Username</div><div id="settings-username" class="text-xs text-slate-500">Not set</div><div id="settings-rank" class="text-[10px] text-purple-400">Rank: Rookie</div><div id="settings-session-status" class="text-[10px] text-amber-300 mt-1">Login status: checking...</div></div>
+                    <div class="min-w-0"><div class="font-semibold text-sm">Username</div><div id="settings-username" class="text-xs text-slate-500">Not set</div><div id="settings-rank" class="text-[10px] text-purple-400">Rank: Rookie</div><div id="settings-session-status" class="text-[10px] text-amber-300 mt-1">ID is not connected</div><button id="btn-refresh-session" type="button" class="mt-1 text-[10px] font-bold text-blue-400 hover:text-blue-300">REFRESH LOGIN STATUS</button></div>
                     <button id="btn-change-username" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-white">CHANGE</button>
                 </div>
                 <button id="btn-settings-login" class="w-full px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold"><i class="fas fa-right-to-bracket mr-1"></i> LOGIN / RECONNECT ACCOUNT</button>
@@ -744,6 +768,15 @@
         document.getElementById('btn-confirm-reset').addEventListener('click', async () => {
             const btn = document.getElementById('btn-confirm-reset');
             const originalText = btn.textContent;
+            const p = getProfile();
+
+            if (!p?.username || !p?.authToken) {
+                document.getElementById('reset-confirm-modal').classList.add('hidden');
+                openLoginReconnect('ID is not connected. Log in with your existing username and password before resetting progress.');
+                updateSettingsUsername();
+                return;
+            }
+
             btn.disabled = true;
             btn.textContent = 'RESETTING...';
 
@@ -773,27 +806,25 @@
                 soundEnabled: gameState.soundEnabled !== false
             };
 
-            let onlineResetOK = true;
+            let onlineResetOK = false;
             try {
-                const p = getProfile();
-                if (p?.username && p?.authToken && ONLINE_LEADERBOARD_API) {
-                    const r = await fetch(ONLINE_LEADERBOARD_API, {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        cache: 'no-store',
-                        body: JSON.stringify({
-                            action: 'sync',
-                            username: p.username,
-                            authToken: p.authToken,
-                            cash: 0,
-                            punches: 0,
-                            rebirths: 0,
-                            gameState: resetState
-                        })
-                    });
-                    const data = await r.json().catch(() => ({}));
-                    onlineResetOK = !!(r.ok && data.success);
-                }
+                const r = await fetch(ONLINE_LEADERBOARD_API, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    cache: 'no-store',
+                    body: JSON.stringify({
+                        action: 'sync',
+                        username: p.username,
+                        authToken: p.authToken,
+                        cash: 0,
+                        punches: 0,
+                        rebirths: 0,
+                        gameState: resetState
+                    })
+                });
+                const data = await r.json().catch(() => ({}));
+                if (r.status === 401) markSessionDisconnected();
+                onlineResetOK = !!(r.ok && data.success);
             } catch (e) {
                 onlineResetOK = false;
             }
@@ -801,7 +832,9 @@
             if (!onlineResetOK) {
                 btn.disabled = false;
                 btn.textContent = originalText;
-                alert('Online progress could not be reset. Please try again while logged in.');
+                document.getElementById('reset-confirm-modal').classList.add('hidden');
+                alert('Reset failed. Your ID must be connected before progress can be reset.');
+                updateSettingsUsername();
                 return;
             }
 
@@ -1237,18 +1270,51 @@
         }
 
         // ===== INFINITE REBIRTH SYSTEM =====
-        function getRebirthCost() {
-            // Easier rebirth loop: lower starting cost and much gentler scaling.
-            // It still grows for a very long progression.
-            const raw = 100000 * Math.pow(3.2, gameState.rebirths);
-            return Math.min(raw, Number.MAX_SAFE_INTEGER);
+        // Rebirth #1 costs $1M, rebirth #2 costs $12M.
+        // From #3 onward the cost grows by 1.214x. This keeps the early rebirths
+        // meaningful while allowing a very rich player to bulk-rebirth (for example,
+        // around $13T can reach roughly Rebirth x64).
+        function getRebirthCostForNumber(rebirthNumber) {
+            const n = Math.max(1, Math.floor(rebirthNumber));
+            if (n === 1) return 1_000_000;
+            if (n === 2) return 12_000_000;
+            const cost = 12_000_000 * Math.pow(1.214, n - 2);
+            return Math.min(cost, Number.MAX_VALUE);
         }
 
-        function getRebirthTokenReward() {
+        function getRebirthCost() {
+            return getRebirthCostForNumber(gameState.rebirths + 1);
+        }
+
+        function getAffordableRebirthPlan() {
+            let cash = Math.max(0, Number(gameState.cash) || 0);
+            let count = 0;
+            let totalCost = 0;
+            let totalTokens = 0;
+            const maxIterations = 1000;
+
+            while (count < maxIterations) {
+                const nextNumber = gameState.rebirths + count + 1;
+                const cost = getRebirthCostForNumber(nextNumber);
+                if (!Number.isFinite(cost) || totalCost + cost > cash) break;
+                totalCost += cost;
+                cash -= cost;
+                totalTokens += getRebirthTokenRewardForRebirthNumber(nextNumber);
+                count++;
+            }
+
+            return { count, totalCost, remainingCash: cash, totalTokens };
+        }
+
+        function getRebirthTokenRewardForRebirthNumber(rebirthNumber) {
             const discount = gameState.tokenShop?.tokenDiscount?.count || 0;
             const rush = gameState.tokenShop?.rebirthRush?.count || 0;
             const mastery = gameState.tokenShop?.tokenMastery?.count || 0;
-            return 5 + Math.floor(gameState.rebirths / 5) + discount + (rush * 2) + Math.floor(mastery / 5);
+            return 5 + Math.floor((Math.max(0, rebirthNumber - 1)) / 5) + discount + (rush * 2) + Math.floor(mastery / 5);
+        }
+
+        function getRebirthTokenReward() {
+            return getRebirthTokenRewardForRebirthNumber(gameState.rebirths + 1);
         }
 
         function getRebirthTitle() {
@@ -1262,8 +1328,9 @@
         }
 
         function updateRebirthUI() {
+            const plan = getAffordableRebirthPlan();
             const cost = getRebirthCost();
-            const canRebirth = gameState.cash >= cost;
+            const canRebirth = plan.count > 0;
             const nextBonus = gameState.rebirths * 25 + 25;
 
             const status = document.getElementById('rebirth-status');
@@ -1273,7 +1340,7 @@
 
             if (status) {
                 status.textContent = canRebirth
-                    ? `Ready! Cost: $${formatNumber(cost)}`
+                    ? `Ready! Rebirth x${plan.count} • Total: $${formatNumber(plan.totalCost)}`
                     : `Need $${formatNumber(cost)} • ${getRebirthTitle()} rank`;
             }
             if (count) count.textContent = `Rebirths: ${formatNumber(gameState.rebirths)} • Tokens: ${formatNumber(gameState.rebirthTokens)}`;
@@ -1293,30 +1360,34 @@
                 }
             }
 
-            return { cost, nextBonus };
+            return { cost, nextBonus, plan };
         }
 
         function openRebirthModal() {
-            const { cost, nextBonus } = updateRebirthUI();
-            if (gameState.cash < cost) return;
+            const { plan, nextBonus } = updateRebirthUI();
+            if (!plan.count) return;
 
-            const reward = getRebirthTokenReward();
+            const firstCost = getRebirthCostForNumber(gameState.rebirths + 1);
+            const lastCost = getRebirthCostForNumber(gameState.rebirths + plan.count);
             document.getElementById('rebirth-modal-text').textContent =
-                `Your current cash and normal upgrades will reset. Permanent rebirth bonuses stay forever. You will become Rebirth #${gameState.rebirths + 1}.`;
-            document.getElementById('rebirth-modal-bonus').textContent = `+${nextBonus}%`;
-            document.getElementById('rebirth-modal-tokens').textContent = `+${reward}`;
-            document.getElementById('rebirth-modal').classList.remove('hidden');
+                `Do you want to do rebirth x${plan.count}? Your normal cash and upgrades will reset, while your permanent rebirth progress stays.`;
+            document.getElementById('rebirth-modal-bonus').textContent =
+                `+${nextBonus}% → +${(gameState.rebirths + plan.count) * 25}%`;
+            document.getElementById('rebirth-modal-tokens').textContent =
+                `+${formatNumber(plan.totalTokens)} tokens • Cost: $${formatNumber(plan.totalCost)}`;
+            const modal = document.getElementById('rebirth-modal');
+            modal.classList.remove('hidden');
         }
 
         function performRebirth() {
-            const cost = getRebirthCost();
-            if (gameState.cash < cost) return;
+            const { plan } = getAffordableRebirthPlan();
+            if (!plan.count) return;
 
-            gameState.rebirths++;
-            gameState.rebirthTokens += getRebirthTokenReward();
+            gameState.rebirths += plan.count;
+            gameState.rebirthTokens += plan.totalTokens;
 
-            // Reset the normal grind, but keep permanent rebirth progress and owned skins.
-            gameState.cash = 0;
+            // Spend the exact total cost and keep any cash left after the bulk rebirth.
+            gameState.cash = Math.max(0, plan.remainingCash);
             gameState.totalPunches = 0;
             gameState.cpcMultiplier = 1;
             gameState.cpsMultiplier = 0;
@@ -1484,7 +1555,8 @@
                 item.count++;
                 invalidateStatsCache();
                 playSound('upgrade');
-                calculateStats();
+                calculateStats(true);
+                updateShopItemStates();
                 saveGame();
             }
         }
@@ -1493,14 +1565,16 @@
             const bagItem = gameState.bags[key];
             if (bagItem.owned) {
                 gameState.activeBagSkin = key;
-                calculateStats();
+                calculateStats(true);
+                updateShopItemStates();
                 saveGame();
             } else if (gameState.cash >= bagItem.price) {
                 gameState.cash -= bagItem.price;
                 bagItem.owned = true;
                 gameState.activeBagSkin = key;
                 playSound('upgrade');
-                calculateStats();
+                calculateStats(true);
+                updateShopItemStates();
                 saveGame();
             }
         }
@@ -1657,14 +1731,62 @@
         function getProfile() {
             try { return JSON.parse(localStorage.getItem(PROFILE_KEY) || 'null'); } catch(e) { return null; }
         }
+        const SESSION_TIMEOUT_MS = 60 * 60 * 1000;
+        let sessionActivityTimer = null;
+
         function saveProfile(username, playerId, authToken) {
             const old = getProfile();
             localStorage.setItem(PROFILE_KEY, JSON.stringify({
                 playerId: playerId || old?.playerId || ('p_' + Date.now() + '_' + Math.random().toString(36).slice(2)),
                 username,
-                authToken: authToken || old?.authToken || ''
+                authToken: authToken || old?.authToken || '',
+                sessionLastActive: Date.now()
             }));
             updateSettingsUsername();
+        }
+
+        function markSessionActive() {
+            const p = getProfile();
+            if (!p?.username || !p?.authToken) return;
+            try {
+                p.sessionLastActive = Date.now();
+                localStorage.setItem(PROFILE_KEY, JSON.stringify(p));
+            } catch (e) {}
+        }
+
+        function expireSessionIfNeeded() {
+            const p = getProfile();
+            if (!p?.username || !p?.authToken) return false;
+            const last = Number(p.sessionLastActive) || 0;
+            if (last && Date.now() - last >= SESSION_TIMEOUT_MS) {
+                p.authToken = '';
+                p.sessionLastActive = 0;
+                localStorage.setItem(PROFILE_KEY, JSON.stringify(p));
+                return true;
+            }
+            return false;
+        }
+
+        function markSessionDisconnected() {
+            const p = getProfile();
+            if (!p) return;
+            try {
+                p.authToken = '';
+                p.sessionLastActive = 0;
+                localStorage.setItem(PROFILE_KEY, JSON.stringify(p));
+            } catch (e) {}
+            updateSettingsUsername();
+        }
+
+        function startSessionActivityLoop() {
+            clearInterval(sessionActivityTimer);
+            markSessionActive();
+            sessionActivityTimer = setInterval(() => {
+                if (document.visibilityState === 'visible') markSessionActive();
+            }, 30000);
+            ['pointerdown','keydown','touchstart'].forEach(type => {
+                document.addEventListener(type, markSessionActive, {passive:true});
+            });
         }
         function updateSettingsUsername() {
             const el = document.getElementById('settings-username');
@@ -1674,9 +1796,11 @@
             const sessionEl = document.getElementById('settings-session-status');
             const profile = getProfile();
             if (sessionEl) {
-                sessionEl.textContent = profile?.username && profile?.authToken ? 'Login status: connected' : 'Login status: login required';
-                sessionEl.classList.toggle('text-emerald-400', !!(profile?.username && profile?.authToken));
-                sessionEl.classList.toggle('text-amber-300', !(profile?.username && profile?.authToken));
+                const connected = !!(profile?.username && profile?.authToken);
+                sessionEl.textContent = connected ? 'ID is connected' : (profile?.username ? 'ID is not connected' : 'ID is not connected');
+                sessionEl.classList.toggle('text-emerald-400', connected);
+                sessionEl.classList.toggle('text-red-400', !connected);
+                sessionEl.classList.toggle('text-amber-300', false);
             }
         }
         function openLoginReconnect(message='Log in with your existing username and password to reconnect this account.') {
@@ -1801,6 +1925,27 @@
         document.getElementById('btn-auth-submit').addEventListener('click',()=> usernameChangeMode ? changeUsername() : confirmUsername());
         document.getElementById('btn-forgot-password').addEventListener('click',openPasswordResetModal);
         document.getElementById('btn-settings-login').addEventListener('click',()=>openLoginReconnect());
+        document.getElementById('btn-refresh-session').addEventListener('click', async () => {
+            expireSessionIfNeeded();
+            const p = getProfile();
+            if (!p?.username || !p?.authToken) {
+                updateSettingsUsername();
+                openLoginReconnect('ID is not connected. Log in with your existing username and password.');
+                return;
+            }
+            const ok = await loadRemoteProgress();
+            if (!ok) {
+                updateSettingsUsername();
+                const current = getProfile();
+                if (current?.authToken) {
+                    document.getElementById('settings-session-status').textContent = 'ID is connected';
+                    document.getElementById('settings-session-status').classList.add('text-emerald-400');
+                    document.getElementById('settings-session-status').classList.remove('text-red-400');
+                }
+            }
+            markSessionActive();
+            updateSettingsUsername();
+        });
         document.getElementById('btn-settings-password').addEventListener('click',openPasswordResetModal);
         document.getElementById('btn-delete-profile').addEventListener('click',openDeleteProfileModal);
         document.getElementById('btn-close-delete-profile').addEventListener('click',closeDeleteProfileModal);
@@ -1915,6 +2060,7 @@
                     signal: controller.signal
                 });
                 const data = await r.json();
+                if (r.status === 401) markSessionDisconnected();
                 if (!r.ok || !data.success) return false;
                 if (data.gameState) {
                     const remoteTime = Number(data.gameState.savedAt) || 0;
@@ -1966,6 +2112,7 @@
                         }
                     })
                 });
+                if (r.status === 401) markSessionDisconnected();
                 return r.ok;
             } catch (e) {
                 return false;
@@ -2073,13 +2220,16 @@
         }
 
         async function ensureProfile() {
+            expireSessionIfNeeded();
             updateSettingsUsername();
             const p = getProfile();
             if (!p) {
                 openUsernameModal();
                 return false;
             }
-            await loadRemoteProgress();
+            if (p.authToken) {
+                await loadRemoteProgress();
+            }
             updateSettingsUsername();
             return true;
         }
@@ -2123,15 +2273,31 @@
         document.getElementById('btn-leaderboard-desktop')?.addEventListener('click', openLeaderboard);
 
 
+        function showOptimizationTip() {
+            const tip = document.getElementById('optimization-tip');
+            if (!tip) return;
+            tip.classList.remove('hidden');
+            clearTimeout(window.__optimizationTipTimer);
+            window.__optimizationTipTimer = setTimeout(() => tip.classList.add('hidden'), 7000);
+        }
+
+        document.getElementById('btn-optimization-tip').addEventListener('click', () => {
+            document.getElementById('optimization-tip').classList.add('hidden');
+            openSettings();
+            setTimeout(() => document.getElementById('btn-toggle-fx')?.focus(), 80);
+        });
+
         window.onload = async function() {
             loadGame();
             applyGraphicsMode();
             await ensureProfile();
+            startSessionActivityLoop();
             resizeCanvas();
-            calculateStats();
+            calculateStats(true);
             renderShop();
             updateRebirthUI();
             startOnlineSyncLoop();
+            showOptimizationTip();
             requestAnimationFrame(updateAndRender);
         };
     </script>
