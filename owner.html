@@ -108,43 +108,6 @@
             font-size: 16px;
         }
 
-        .player-picker {
-            margin-bottom: 20px;
-        }
-
-        .player-row {
-            display: grid;
-            grid-template-columns: 1fr 90px;
-            gap: 10px;
-            margin-top: 5px;
-        }
-
-        .player-row input {
-            margin-top: 0;
-            min-width: 0;
-            -webkit-user-select: text;
-            user-select: text;
-            touch-action: manipulation;
-            cursor: text;
-        }
-
-        .player-row button {
-            margin: 0;
-            min-height: 46px;
-            background: white;
-            color: black;
-        }
-
-        #rebirthTokensInput {
-            margin-bottom: 0;
-        }
-
-        @media (max-width: 500px) {
-            .player-row {
-                grid-template-columns: 1fr;
-            }
-        }
-
         .buttons {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -221,23 +184,6 @@
 
     <div id="panelContent" style="display:none;">
 
-        <div class="player-picker">
-            <label for="playerUsername">Player username</label>
-            <div class="player-row">
-                <input
-                    id="playerUsername"
-                    type="text"
-                    inputmode="text"
-                    autocomplete="off"
-                    autocapitalize="none"
-                    spellcheck="false"
-                    placeholder="Enter a player username"
-                    aria-label="Player username"
-                >
-                <button id="loadPlayerBtn" type="button">LOAD</button>
-            </div>
-        </div>
-
         <div class="stats">
             <div class="stat">
                 <div class="stat-title">CASH</div>
@@ -253,43 +199,33 @@
                 <div class="stat-title">REBIRTHS</div>
                 <div id="rebirthsDisplay" class="stat-value">0</div>
             </div>
-
-            <div class="stat">
-                <div class="stat-title">REBIRTH TOKENS</div>
-                <div id="rebirthTokensDisplay" class="stat-value">0</div>
-            </div>
         </div>
 
         <div class="inputs">
 
             <div>
-                <label for="cashInput">Cash</label>
-                <input id="cashInput" type="number" min="0" inputmode="numeric" value="0">
+                <label>Cash</label>
+                <input id="cashInput" type="number" min="0" value="0">
             </div>
 
             <div>
-                <label for="punchesInput">Punches</label>
-                <input id="punchesInput" type="number" min="0" inputmode="numeric" value="0">
+                <label>Punches</label>
+                <input id="punchesInput" type="number" min="0" value="0">
             </div>
 
             <div>
-                <label for="rebirthsInput">Rebirths</label>
-                <input id="rebirthsInput" type="number" min="0" inputmode="numeric" value="0">
-            </div>
-
-            <div>
-                <label for="rebirthTokensInput">Rebirth Tokens</label>
-                <input id="rebirthTokensInput" type="number" min="0" inputmode="numeric" value="0">
+                <label>Rebirths</label>
+                <input id="rebirthsInput" type="number" min="0" value="0">
             </div>
 
         </div>
 
         <div class="buttons">
-            <button id="setBtn" type="button">
+            <button id="setBtn">
                 SET STATS
             </button>
 
-            <button id="addBtn" type="button">
+            <button id="addBtn">
                 ADD TO STATS
             </button>
         </div>
@@ -316,15 +252,10 @@ const panelContent = document.getElementById("panelContent");
 const cashDisplay = document.getElementById("cashDisplay");
 const punchesDisplay = document.getElementById("punchesDisplay");
 const rebirthsDisplay = document.getElementById("rebirthsDisplay");
-const rebirthTokensDisplay = document.getElementById("rebirthTokensDisplay");
-
-const playerUsername = document.getElementById("playerUsername");
-const loadPlayerBtn = document.getElementById("loadPlayerBtn");
 
 const cashInput = document.getElementById("cashInput");
 const punchesInput = document.getElementById("punchesInput");
 const rebirthsInput = document.getElementById("rebirthsInput");
-const rebirthTokensInput = document.getElementById("rebirthTokensInput");
 
 const setBtn = document.getElementById("setBtn");
 const addBtn = document.getElementById("addBtn");
@@ -383,12 +314,10 @@ function displayStats(data) {
     cashDisplay.textContent = formatNumber(data.cash);
     punchesDisplay.textContent = formatNumber(data.punches);
     rebirthsDisplay.textContent = formatNumber(data.rebirths);
-    rebirthTokensDisplay.textContent = formatNumber(data.rebirthTokens);
 
     cashInput.value = data.cash;
     punchesInput.value = data.punches;
     rebirthsInput.value = data.rebirths;
-    rebirthTokensInput.value = data.rebirthTokens;
 }
 
 
@@ -396,35 +325,23 @@ async function loadOwnerStats() {
 
     try {
 
-        const targetUsername = playerUsername.value.trim();
-
-        if (!targetUsername) {
-            setStatus("Enter a player username first.");
-            playerUsername.focus();
-            return;
-        }
-
-        loadPlayerBtn.disabled = true;
-        setStatus("Loading player...");
-
-        const data = await ownerRequest("get_player", {
-            targetUsername
-        });
+        const data = await ownerRequest("get_stats");
 
         if (!data.success) {
-            setStatus(data.error || "Could not load player.");
+            setStatus(data.error || "Owner access denied.");
             return;
         }
 
+        panelContent.style.display = "block";
+
         displayStats(data);
-        setStatus("Loaded: " + data.username);
+
+        setStatus("Owner access verified.");
 
     } catch (error) {
 
         setStatus("Could not connect to the owner server.");
 
-    } finally {
-        loadPlayerBtn.disabled = false;
     }
 }
 
@@ -438,21 +355,11 @@ async function setStats() {
 
     try {
 
-        const targetUsername = playerUsername.value.trim();
-
-        if (!targetUsername) {
-            setStatus("Enter a player username first.");
-            playerUsername.focus();
-            return;
-        }
-
         const data = await ownerRequest("set_stats", {
 
-            targetUsername,
             cash: Number(cashInput.value) || 0,
             punches: Number(punchesInput.value) || 0,
-            rebirths: Number(rebirthsInput.value) || 0,
-            rebirthTokens: Number(rebirthTokensInput.value) || 0
+            rebirths: Number(rebirthsInput.value) || 0
 
         });
 
@@ -488,21 +395,11 @@ async function addStats() {
 
     try {
 
-        const targetUsername = playerUsername.value.trim();
-
-        if (!targetUsername) {
-            setStatus("Enter a player username first.");
-            playerUsername.focus();
-            return;
-        }
-
         const data = await ownerRequest("add_stats", {
 
-            targetUsername,
             cash: Number(cashInput.value) || 0,
             punches: Number(punchesInput.value) || 0,
-            rebirths: Number(rebirthsInput.value) || 0,
-            rebirthTokens: Number(rebirthTokensInput.value) || 0
+            rebirths: Number(rebirthsInput.value) || 0
 
         });
 
@@ -529,16 +426,8 @@ async function addStats() {
 }
 
 
-loadPlayerBtn.addEventListener("click", loadOwnerStats);
 setBtn.addEventListener("click", setStats);
 addBtn.addEventListener("click", addStats);
-
-playerUsername.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") {
-        event.preventDefault();
-        loadOwnerStats();
-    }
-});
 
 
 profile = getProfile();
@@ -559,8 +448,7 @@ if (!profile) {
 
 } else {
 
-    panelContent.style.display = "block";
-    setStatus("Owner access verified. Enter a player username.");
+    loadOwnerStats();
 
 }
 
