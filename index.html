@@ -79,7 +79,7 @@
 
 
         /* ===== LIGHTWEIGHT 3D COMBAT LAYER ===== */
-        #combat-canvas { position:absolute; inset:0; width:100%; height:100%; z-index:5; touch-action:none; }
+        #combat-canvas { position:absolute; inset:0; width:100%; height:100%; min-height:320px; z-index:5; touch-action:none; display:block; pointer-events:auto; }
         #game-canvas { opacity:0; }
         #combat-hud { position:absolute; inset:0; z-index:8; pointer-events:none; }
         #combat-boss-card { position:absolute; top:86px; left:50%; transform:translateX(-50%); width:min(440px,calc(100% - 32px)); padding:10px 14px; border:1px solid rgba(148,163,184,.25); border-radius:16px; background:rgba(2,6,23,.78); backdrop-filter:blur(8px); box-shadow:0 12px 40px rgba(0,0,0,.28); }
@@ -184,13 +184,19 @@
                     <div class="mt-2" id="boss-hp-track"><div id="boss-hp-fill"></div></div>
                 </div>
                 <div id="combat-area-pill">TRAINING GYM</div>
+                <div id="combat-punch-controls" style="position:absolute;left:50%;bottom:18px;transform:translateX(-50%);display:flex;gap:8px;pointer-events:auto;z-index:20;flex-wrap:wrap;justify-content:center;width:min(520px,calc(100% - 24px));">
+                    <button id="btn-jab" type="button" style="min-width:88px;padding:10px 14px;border-radius:14px;border:1px solid rgba(251,191,36,.45);background:rgba(15,23,42,.9);color:#fbbf24;font-weight:900;">JAB</button>
+                    <button id="btn-hook" type="button" style="min-width:88px;padding:10px 14px;border-radius:14px;border:1px solid rgba(248,113,113,.45);background:rgba(15,23,42,.9);color:#f87171;font-weight:900;">HOOK</button>
+                    <button id="btn-uppercut" type="button" style="min-width:88px;padding:10px 14px;border-radius:14px;border:1px solid rgba(96,165,250,.45);background:rgba(15,23,42,.9);color:#60a5fa;font-weight:900;">UPPERCUT</button>
+                    <button id="btn-heavy" type="button" style="min-width:88px;padding:10px 14px;border-radius:14px;border:1px solid rgba(192,132,252,.45);background:rgba(15,23,42,.9);color:#c084fc;font-weight:900;">HEAVY</button>
+                </div>
                 <div id="combat-banner"></div>
                 <div id="boss-ready" class="hidden">BOSS INCOMING — keep punching to break the bag!</div>
                 <div id="combat-combo" class="hidden"><div id="combat-combo-number">0</div><div id="combat-combo-label">HIT COMBO</div></div>
             </div>
 
             <!-- HINT -->
-            <div class="absolute bottom-3 pointer-events-none text-slate-500 text-xs tracking-wider uppercase flex items-center gap-2">
+            <div class="absolute bottom-2 md:bottom-20 pointer-events-none text-slate-500 text-xs tracking-wider uppercase flex items-center gap-2">
                 <i class="fas fa-hand-pointer animate-pulse"></i> Tap Punching Bag to Attack
             </div>
         </main>
@@ -2386,7 +2392,7 @@
   const bossCard=document.getElementById('combat-boss-card'), bossName=document.getElementById('boss-name'), bossStage=document.getElementById('boss-stage'), bossHpFill=document.getElementById('boss-hp-fill'), bossHpText=document.getElementById('boss-hp-text');
   const areaPill=document.getElementById('combat-area-pill'), banner=document.getElementById('combat-banner'), ready=document.getElementById('boss-ready'), comboBox=document.getElementById('combat-combo'), comboNum=document.getElementById('combat-combo-number');
   const originalCanvas=document.getElementById('game-canvas');
-  const combat=gameState.combat || (gameState.combat={area:1,bossIndex:0,bossActive:false,bossHp:0,bossMaxHp:0,combo:0,comboTimer:0,totalBossesDefeated:0,nextBossPunches:500,unlockedAreas:1,bossReady:false});
+  const combat=gameState.combat || (gameState.combat={area:1,bossIndex:0,bossActive:false,bossHp:0,bossMaxHp:0,combo:0,comboTimer:0,totalBossesDefeated:0,nextBossPunches:25,unlockedAreas:1,bossReady:false});
   const bosses=[
     {name:'ZOMBIE BAG BOSS',type:'zombie',area:'ABANDONED GYM',hp:25000,reward:250000,color:'#86efac'},
     {name:'IRON OGRE',type:'ogre',area:'IRON WAREHOUSE',hp:900000,reward:12000000,color:'#94a3b8'},
@@ -2432,12 +2438,25 @@
   function combatPunch(x,y,isAuto){
     if(typeof triggerHit==='function') triggerHit(x,y,isAuto,false);
   }
+  function combatMove(kind){
+    const mult = kind==='jab' ? 1 : kind==='hook' ? 1.25 : kind==='uppercut' ? 1.55 : 2.1;
+    window.__combatPunchMultiplier = mult;
+    if(typeof triggerHit==='function') triggerHit(W/2, H*.44, false, false);
+    window.__combatPunchMultiplier = 1;
+    punchAnim = Math.min(1.2, punchAnim + .55);
+    flash = Math.min(1, flash + .25);
+    updateHud();
+  }
+  document.getElementById('btn-jab')?.addEventListener('click',()=>combatMove('jab'));
+  document.getElementById('btn-hook')?.addEventListener('click',()=>combatMove('hook'));
+  document.getElementById('btn-uppercut')?.addEventListener('click',()=>combatMove('uppercut'));
+  document.getElementById('btn-heavy')?.addEventListener('click',()=>combatMove('heavy'));
   // Wrap the existing hit function so the original economy remains intact.
   if(typeof window.triggerHit==='function'){}
   const originalTrigger=triggerHit;
   triggerHit=function(x,y,isAuto=false,skipUiSave=false){
     originalTrigger(x,y,isAuto,skipUiSave);
-    if(combat.bossActive) damageBoss(isAuto?0.18:1);
+    if(combat.bossActive) damageBoss(isAuto ? 0.18 : (Number(window.__combatPunchMultiplier) || 1));
     else if(!isAuto){
       combat.combo++; combat.comboTimer=2.2;
       if(combat.combo>=3 && typeof spawnFloatingText==='function' && !gameState.lowGraphics) spawnFloatingText(x||W/2,y||H/2,'COMBO x'+combat.combo,'#f59e0b');
@@ -2497,6 +2516,18 @@
     for(let j=1;j<7;j++){const y=horizon+(H-horizon)*(j/7)**1.7;cctx.beginPath();cctx.moveTo(0,y);cctx.lineTo(W,y);cctx.stroke();}
     const cx=W/2+(shake>0 ? (Math.random()-.5)*shake : 0), bagY=H*.44;
     if(combat.bossActive){ drawBag(cx,bagY,quality*.9); drawBoss(cx,bagY-25 + bossSpawn*150,quality*(W<500?.8:1),t); bossSpawn=Math.max(0,bossSpawn-dt*1.8); } else drawBag(cx,bagY,quality);
+    // Visible boxing gloves / punch animation
+    if(punchAnim>0){
+      const side = Math.sin(now/70) >= 0 ? 1 : -1;
+      const gx = cx + side * (90 + punchAnim*55);
+      const gy = bagY + 10 - punchAnim*45;
+      cctx.save();
+      cctx.globalAlpha = Math.min(1, punchAnim);
+      cctx.fillStyle = side > 0 ? '#ef4444' : '#3b82f6';
+      cctx.beginPath(); cctx.arc(gx,gy,26,0,Math.PI*2); cctx.fill();
+      cctx.fillStyle = 'rgba(255,255,255,.22)'; cctx.beginPath(); cctx.arc(gx-8,gy-8,9,0,Math.PI*2); cctx.fill();
+      cctx.restore();
+    }
     // gloves / impact ring
     if(punchAnim>0){const r=(1-punchAnim)*70+20;cctx.globalAlpha=punchAnim*.45;cctx.strokeStyle='#fbbf24';cctx.lineWidth=4;cctx.beginPath();cctx.arc(cx,bagY,r,0,Math.PI*2);cctx.stroke();cctx.globalAlpha=1;}
     if(flash>0){cctx.fillStyle='rgba(248,113,113,'+(flash*.08)+')';cctx.fillRect(0,0,W,H);}
