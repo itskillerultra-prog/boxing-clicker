@@ -57,6 +57,8 @@
         body.low-performance-mode .backdrop-blur-md, body.low-performance-mode .backdrop-blur-sm { backdrop-filter: none !important; }
         body.low-performance-mode .animate-bounce, body.low-performance-mode .animate-pulse { animation: none !important; }
         body.low-performance-mode #frenzy-banner { display: none !important; }
+        body.low-performance-mode #frenzy-container { display: none !important; }
+        body.low-performance-mode * { scroll-behavior: auto !important; }
         @media (max-width: 700px) {
             #shop-container { min-height: 0; }
             #settings-modal > div, #username-modal > div, #leaderboard-modal > div { max-height: 92vh; overflow-y: auto; }
@@ -330,14 +332,20 @@
             <!-- Performance Settings -->
             <div class="space-y-3">
                 <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400">Performance & Graphics</h4>
-                <div class="flex justify-between items-center bg-slate-950 p-3 rounded-xl border border-slate-800">
-                    <div>
-                        <div class="font-semibold text-sm">Graphics FX Mode</div>
-                        <div class="text-xs text-slate-500">Low mode optimizes speed for low-end devices</div>
+                <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-3">
+                    <div class="flex justify-between items-center gap-3">
+                        <div class="min-w-0">
+                            <div class="font-semibold text-sm">Low-End Optimization</div>
+                            <div class="text-xs text-slate-500">ON = lighter rendering and fewer effects for smoother gameplay</div>
+                        </div>
+                        <button id="btn-toggle-fx" type="button" aria-pressed="false"
+                            class="shrink-0 min-w-[88px] px-3 py-2 rounded-lg text-xs font-bold bg-slate-700 text-white">OFF</button>
                     </div>
-                    <button id="btn-toggle-fx" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-600 text-white">
-                        HIGH FX
-                    </button>
+                    <div class="flex items-center gap-2 text-[10px] text-slate-500">
+                        <span>OFF</span>
+                        <input id="optimization-slider" type="range" min="0" max="1" step="1" value="0" aria-label="Low-End Optimization">
+                        <span>ON</span>
+                    </div>
                 </div>
 
                 <div class="flex justify-between items-center bg-slate-950 p-3 rounded-xl border border-slate-800">
@@ -696,20 +704,35 @@
         document.getElementById('btn-save-close').addEventListener('click', closeSettings);
 
         function applyGraphicsMode() {
-            document.body.classList.toggle('low-performance-mode', !!gameState.lowGraphics);
-            btnToggleFx.textContent = gameState.lowGraphics ? 'LOW (FAST)' : 'HIGH FX';
-            btnToggleFx.className = `px-3 py-1.5 rounded-lg text-xs font-bold ${gameState.lowGraphics ? 'bg-amber-600' : 'bg-blue-600'} text-white`;
+            const enabled = !!gameState.lowGraphics;
+            document.body.classList.toggle('low-performance-mode', enabled);
+            btnToggleFx.textContent = enabled ? 'ON' : 'OFF';
+            btnToggleFx.setAttribute('aria-pressed', enabled ? 'true' : 'false');
+            btnToggleFx.className = `shrink-0 min-w-[88px] px-3 py-2 rounded-lg text-xs font-bold ${enabled ? 'bg-emerald-600' : 'bg-slate-700'} text-white`;
+            const slider = document.getElementById('optimization-slider');
+            if (slider) slider.value = enabled ? '1' : '0';
         }
-        btnToggleFx.addEventListener('click', () => {
-            gameState.lowGraphics = !gameState.lowGraphics;
+
+        function setLowEndOptimization(enabled, persist = true) {
+            gameState.lowGraphics = !!enabled;
+            lowGraphicsFrameCounter = 0;
             applyGraphicsMode();
-            saveGame();
+            if (persist) saveGame();
+        }
+
+        btnToggleFx.addEventListener('click', () => {
+            setLowEndOptimization(!gameState.lowGraphics);
+        });
+
+        document.getElementById('optimization-slider').addEventListener('input', (event) => {
+            setLowEndOptimization(event.target.value === '1');
         });
 
         btnToggleSound.addEventListener('click', () => {
             gameState.soundEnabled = !gameState.soundEnabled;
             btnToggleSound.textContent = gameState.soundEnabled ? 'ENABLED' : 'MUTED';
             btnToggleSound.className = `px-3 py-1.5 rounded-lg text-xs font-bold ${gameState.soundEnabled ? 'bg-emerald-600' : 'bg-slate-700'} text-white`;
+            saveGame();
         });
 
         document.getElementById('btn-reset-data').addEventListener('click', () => {
@@ -718,12 +741,75 @@
         document.getElementById('btn-cancel-reset').addEventListener('click', () => {
             document.getElementById('reset-confirm-modal').classList.add('hidden');
         });
-        document.getElementById('btn-confirm-reset').addEventListener('click', () => {
+        document.getElementById('btn-confirm-reset').addEventListener('click', async () => {
+            const btn = document.getElementById('btn-confirm-reset');
+            const originalText = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = 'RESETTING...';
+
+            clearTimeout(onlineSyncTimer);
+            clearInterval(onlineSyncInterval);
+
+            const resetUpgrades = {};
+            for (const key in gameState.upgrades) resetUpgrades[key] = { count: 0 };
+
+            const resetBags = {};
+            for (const key in gameState.bags) resetBags[key] = { owned: key === 'canvas' };
+
+            const resetTokenShop = {};
+            for (const key in gameState.tokenShop) resetTokenShop[key] = { count: 0 };
+
+            const resetState = {
+                savedAt: Date.now(),
+                cash: 0,
+                totalPunches: 0,
+                rebirths: 0,
+                rebirthTokens: 0,
+                upgrades: resetUpgrades,
+                bags: resetBags,
+                activeBagSkin: 'canvas',
+                tokenShop: resetTokenShop,
+                lowGraphics: !!gameState.lowGraphics,
+                soundEnabled: gameState.soundEnabled !== false
+            };
+
+            let onlineResetOK = true;
+            try {
+                const p = getProfile();
+                if (p?.username && p?.authToken && ONLINE_LEADERBOARD_API) {
+                    const r = await fetch(ONLINE_LEADERBOARD_API, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        cache: 'no-store',
+                        body: JSON.stringify({
+                            action: 'sync',
+                            username: p.username,
+                            authToken: p.authToken,
+                            cash: 0,
+                            punches: 0,
+                            rebirths: 0,
+                            gameState: resetState
+                        })
+                    });
+                    const data = await r.json().catch(() => ({}));
+                    onlineResetOK = !!(r.ok && data.success);
+                }
+            } catch (e) {
+                onlineResetOK = false;
+            }
+
+            if (!onlineResetOK) {
+                btn.disabled = false;
+                btn.textContent = originalText;
+                alert('Online progress could not be reset. Please try again while logged in.');
+                return;
+            }
+
             try {
                 localStorage.removeItem('boxing_clicker_save_v2');
                 localStorage.removeItem(LEADERBOARD_KEY);
-                clearTimeout(onlineSyncTimer);
             } catch (e) {}
+
             document.getElementById('reset-confirm-modal').classList.add('hidden');
             window.location.href = window.location.href.split('#')[0] + '?reset=' + Date.now();
         });
@@ -818,15 +904,47 @@
 
         // Stats Calculation Engine
         let lastHudUiRefresh = 0;
-        function calculateStats(forceUi = false) {
+        let statsDirty = true;
+        let cachedBaseCpc = 1;
+        let cachedBaseCps = 0;
+        let cachedPermanentBoostMult = 1;
+        let cachedMegaTokenMult = 1;
+
+        function invalidateStatsCache() {
+            statsDirty = true;
+        }
+
+        function rebuildStatsCache() {
             let baseCpc = 1;
             let baseCps = 0;
+            let permanentBoostMult = 1;
+            let megaTokenMult = 1;
 
             for (const k in gameState.upgrades) {
                 const item = gameState.upgrades[k];
-                if (item.cpc) baseCpc += item.cpc * item.count;
-                if (item.cps) baseCps += item.cps * item.count;
+                const count = Number(item.count) || 0;
+                if (item.cpc) baseCpc += item.cpc * count;
+                if (item.cps) baseCps += item.cps * count;
+                if (item.boostType === 'cash' && item.boost) permanentBoostMult += item.boost * count;
             }
+
+            for (const k in gameState.tokenShop) {
+                const tokenItem = gameState.tokenShop[k];
+                if (tokenItem.tokenBoost) megaTokenMult += tokenItem.tokenBoost * (Number(tokenItem.count) || 0);
+            }
+
+            cachedBaseCpc = baseCpc;
+            cachedBaseCps = baseCps;
+            cachedPermanentBoostMult = permanentBoostMult;
+            cachedMegaTokenMult = megaTokenMult;
+            statsDirty = false;
+        }
+
+        function calculateStats(forceUi = false) {
+            if (statsDirty) rebuildStatsCache();
+
+            const baseCpc = cachedBaseCpc;
+            const baseCps = cachedBaseCps;
 
             const skinMult = gameState.bags[gameState.activeBagSkin].multiplier;
             const frenzyMult = gameState.frenzyActive ? 2 : 1;
@@ -842,16 +960,8 @@
             const tokenGoldenTouch = 1 + ((gameState.tokenShop?.goldenTouch?.count || 0) * 0.03);
             const tokenEternalPower = 1 + ((gameState.tokenShop?.eternalPower?.count || 0) * 0.05);
             const tokenTitanMastery = 1 + ((gameState.tokenShop?.titanMastery?.count || 0) * 0.10);
-            let megaTokenMult = 1;
-            for (const k in gameState.tokenShop) {
-                const tokenItem = gameState.tokenShop[k];
-                if (tokenItem.tokenBoost) megaTokenMult += tokenItem.tokenBoost * tokenItem.count;
-            }
-            let permanentBoostMult = 1;
-            for (const k in gameState.upgrades) {
-                const item = gameState.upgrades[k];
-                if (item.boostType === 'cash' && item.boost) permanentBoostMult += item.boost * item.count;
-            }
+            const megaTokenMult = cachedMegaTokenMult;
+            const permanentBoostMult = cachedPermanentBoostMult;
 
             const boostedSkinMult = skinMult * tokenBagMult;
             const boostedFrenzyMult = frenzyMult * tokenFrenzyMult;
@@ -869,7 +979,6 @@
             cpcDisplayDesktop.textContent = `+$${formatNumber(gameState.cpcMultiplier)}`;
             cpsDisplayMobile.textContent = `${formatNumber(gameState.cpsMultiplier)}/s`;
             cpsDisplayDesktop.textContent = `${formatNumber(gameState.cpsMultiplier)}/s`;
-            updateShopItemStates();
             updateRebirthUI();
         }
 
@@ -895,7 +1004,7 @@
             bag.squishX = 1.25;
             bag.squishY = 0.82;
 
-            if (!gameState.lowGraphics || !isAuto) {
+            if (!gameState.lowGraphics) {
                 spawnFloatingText(hitX || bag.x, hitY || bag.y, `+$${Math.floor(earnings)}`, isCrit ? '#EF4444' : '#FBBF24');
                 spawnSparks(hitX || bag.x, hitY || bag.y, isAuto ? 1 : 6);
             }
@@ -926,7 +1035,6 @@
 
             if (!skipUiSave) {
                 calculateStats();
-                updateRebirthUI();
                 saveGame();
             }
         }
@@ -968,11 +1076,15 @@
         let autoPunchAccumulator = 0;
         let lastAutoSaveAt = 0;
 
-        let lowFrameSkip = false;
+        let lowGraphicsFrameCounter = 0;
+        let lastLowRenderAt = 0;
         function updateAndRender(now) {
             if (gameState.lowGraphics) {
-                lowFrameSkip = !lowFrameSkip;
-                if (lowFrameSkip) { requestAnimationFrame(updateAndRender); return; }
+                if (now - lastLowRenderAt < 32) {
+                    requestAnimationFrame(updateAndRender);
+                    return;
+                }
+                lastLowRenderAt = now;
             }
             const dt = Math.min((now - lastTime) / 1000, 0.1);
             lastTime = now;
@@ -1214,6 +1326,7 @@
             for (const key in gameState.upgrades) {
                 gameState.upgrades[key].count = 0;
             }
+            invalidateStatsCache();
 
             document.getElementById('rebirth-modal').classList.add('hidden');
             playSound('upgrade');
@@ -1369,6 +1482,7 @@
             if (gameState.cash >= price) {
                 gameState.cash -= price;
                 item.count++;
+                invalidateStatsCache();
                 playSound('upgrade');
                 calculateStats();
                 saveGame();
@@ -1396,6 +1510,7 @@
             if (!item || item.count >= item.max || gameState.rebirthTokens < item.price) return;
             gameState.rebirthTokens -= item.price;
             item.count++;
+            invalidateStatsCache();
             playSound('upgrade');
             calculateStats();
             renderShop();
@@ -1505,6 +1620,7 @@
                             }
                         }
                     }
+                    invalidateStatsCache();
                 }
             } catch (e) {}
         }
@@ -1625,6 +1741,7 @@
                 if (remote.upgrades) for (const k in remote.upgrades) if (gameState.upgrades[k]) gameState.upgrades[k].count = Math.max(0, Math.floor(Number(remote.upgrades[k].count) || 0));
                 if (remote.bags) for (const k in remote.bags) if (gameState.bags[k]) gameState.bags[k].owned = !!remote.bags[k].owned;
                 if (remote.tokenShop) for (const k in remote.tokenShop) if (gameState.tokenShop[k]) gameState.tokenShop[k].count = Math.max(0, Math.min(gameState.tokenShop[k].max, Math.floor(Number(remote.tokenShop[k].count) || 0)));
+                invalidateStatsCache();
                 applyGraphicsMode();
                 calculateStats();
                 _saveGameOriginal ? _saveGameOriginal() : saveGame();
