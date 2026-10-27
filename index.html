@@ -502,8 +502,8 @@
             ];
             const icons = ['fa-bolt','fa-fire','fa-star','fa-atom','fa-meteor','fa-crown','fa-gem','fa-dumbbell','fa-hand-fist','fa-sparkles'];
 
-            // 300 extra Power upgrades
-            for (let i = 1; i <= 300; i++) {
+            // 500 extra Power upgrades
+            for (let i = 1; i <= 500; i++) {
                 const key = `megaPower${i}`;
                 const tier = i;
                 const name = `${powerNames[(i-1) % powerNames.length]} ${tier}`;
@@ -515,8 +515,8 @@
                 };
             }
 
-            // 180 extra Auto upgrades
-            for (let i = 1; i <= 180; i++) {
+            // 500 extra Auto upgrades
+            for (let i = 1; i <= 500; i++) {
                 const key = `megaAuto${i}`;
                 const name = `${autoNames[(i-1) % autoNames.length]} ${i}`;
                 const base = Math.floor(2e16 * Math.pow(1.17, i - 1));
@@ -527,8 +527,8 @@
                 };
             }
 
-            // 80 extra Boost upgrades
-            for (let i = 1; i <= 80; i++) {
+            // 500 extra Boost upgrades
+            for (let i = 1; i <= 500; i++) {
                 const key = `megaBoost${i}`;
                 const name = `${boostNames[(i-1) % boostNames.length]} ${i}`;
                 const base = Math.floor(1e10 * Math.pow(1.28, i - 1));
@@ -536,6 +536,55 @@
                 gameState.upgrades[key] = {
                     count: 0, basePrice: base, growth: 1.34, boost,
                     name, desc: `+${(boost * 100).toFixed(1)}% permanent cash power`, icon: icons[(i+6) % icons.length], boostType: 'cash'
+                };
+            }
+
+            // 500 extra Token Shop options.
+            // Each one gives a permanent global earnings boost and is intentionally affordable.
+            const tokenNames = [
+                'Power Token','Cash Token','Fury Token','Lucky Token','Champion Token',
+                'Titan Token','Cosmic Token','Infinity Token','Eternal Token','Ascension Token'
+            ];
+            for (let i = 1; i <= 500; i++) {
+                const key = `megaToken${i}`;
+                const tokenPrice = Math.max(1, Math.floor(2 + i * 0.45));
+                const tokenBoost = 0.01 + (i * 0.001);
+                gameState.tokenShop[key] = {
+                    count: 0,
+                    price: tokenPrice,
+                    max: 1,
+                    name: `${tokenNames[(i - 1) % tokenNames.length]} ${i}`,
+                    desc: `+${(tokenBoost * 100).toFixed(1)}% permanent total earnings`,
+                    icon: icons[(i + 2) % icons.length],
+                    tokenBoost
+                };
+            }
+
+            // 500 extra Bag/skin options.
+            // They keep the same bag system, so they work with the existing renderer/equip flow.
+            const skinNames = [
+                'Neon','Inferno','Frost','Venom','Thunder','Shadow','Solar','Lunar',
+                'Galaxy','Cosmic','Quantum','Chrono','Plasma','Eclipse','Nova','Titan'
+            ];
+            const skinColors = [
+                '#22d3ee','#f97316','#60a5fa','#84cc16','#facc15','#8b5cf6',
+                '#fb7185','#38bdf8','#a78bfa','#e879f9','#34d399','#f43f5e'
+            ];
+            for (let i = 1; i <= 500; i++) {
+                const key = `megaSkin${i}`;
+                const price = Math.floor(5000 * Math.pow(1.115, i - 1));
+                const multiplier = 2 + (i * 1.25);
+                const color = skinColors[(i - 1) % skinColors.length];
+                const accent = skinColors[(i + 3) % skinColors.length];
+                const text = skinColors[(i + 6) % skinColors.length];
+                gameState.bags[key] = {
+                    name: `${skinNames[(i - 1) % skinNames.length]} Heavy Bag ${i}`,
+                    price,
+                    multiplier,
+                    color,
+                    owned: false,
+                    accent,
+                    text
                 };
             }
         })();
@@ -793,6 +842,11 @@
             const tokenGoldenTouch = 1 + ((gameState.tokenShop?.goldenTouch?.count || 0) * 0.03);
             const tokenEternalPower = 1 + ((gameState.tokenShop?.eternalPower?.count || 0) * 0.05);
             const tokenTitanMastery = 1 + ((gameState.tokenShop?.titanMastery?.count || 0) * 0.10);
+            let megaTokenMult = 1;
+            for (const k in gameState.tokenShop) {
+                const tokenItem = gameState.tokenShop[k];
+                if (tokenItem.tokenBoost) megaTokenMult += tokenItem.tokenBoost * tokenItem.count;
+            }
             let permanentBoostMult = 1;
             for (const k in gameState.upgrades) {
                 const item = gameState.upgrades[k];
@@ -802,8 +856,8 @@
             const boostedSkinMult = skinMult * tokenBagMult;
             const boostedFrenzyMult = frenzyMult * tokenFrenzyMult;
             const boostedRebirthMult = rebirthMult * tokenRebirthMult;
-            gameState.cpcMultiplier = baseCpc * boostedSkinMult * boostedFrenzyMult * boostedRebirthMult * tokenCashMult * tokenPunchMult * tokenCashSurge * tokenBossDamage * tokenGoldenTouch * tokenEternalPower * tokenTitanMastery * permanentBoostMult;
-            gameState.cpsMultiplier = baseCps * boostedSkinMult * boostedFrenzyMult * boostedRebirthMult * tokenCashMult * tokenAutoMult * tokenCashSurge * tokenGoldenTouch * tokenEternalPower * tokenTitanMastery * permanentBoostMult;
+            gameState.cpcMultiplier = baseCpc * boostedSkinMult * boostedFrenzyMult * boostedRebirthMult * tokenCashMult * tokenPunchMult * tokenCashSurge * tokenBossDamage * tokenGoldenTouch * tokenEternalPower * tokenTitanMastery * megaTokenMult * permanentBoostMult;
+            gameState.cpsMultiplier = baseCps * boostedSkinMult * boostedFrenzyMult * boostedRebirthMult * tokenCashMult * tokenAutoMult * tokenCashSurge * tokenGoldenTouch * tokenEternalPower * tokenTitanMastery * megaTokenMult * permanentBoostMult;
 
             // Throttle DOM work so very high CPS does not rebuild shop buttons on every punch.
             const now = performance.now();
@@ -1072,14 +1126,17 @@
 
         // ===== INFINITE REBIRTH SYSTEM =====
         function getRebirthCost() {
-            // Starts at $1M and grows x12 after every rebirth.
-            // This intentionally creates a very long, effectively endless progression.
-            const raw = 1000000 * Math.pow(12, gameState.rebirths);
+            // Easier rebirth loop: lower starting cost and much gentler scaling.
+            // It still grows for a very long progression.
+            const raw = 100000 * Math.pow(3.2, gameState.rebirths);
             return Math.min(raw, Number.MAX_SAFE_INTEGER);
         }
 
         function getRebirthTokenReward() {
-            return 1 + Math.floor(gameState.rebirths / 10) + (gameState.tokenShop?.tokenDiscount?.count || 0);
+            const discount = gameState.tokenShop?.tokenDiscount?.count || 0;
+            const rush = gameState.tokenShop?.rebirthRush?.count || 0;
+            const mastery = gameState.tokenShop?.tokenMastery?.count || 0;
+            return 5 + Math.floor(gameState.rebirths / 5) + discount + (rush * 2) + Math.floor(mastery / 5);
         }
 
         function getRebirthTitle() {
