@@ -60,7 +60,7 @@ export async function onRequest(context) {
         // --------------------------------
         // GET A PLAYER
         // --------------------------------
-        if (action === "get_player" || action === "get_stats") {
+        if (action === "get_player") {
             const targetUsername = String(body.targetUsername || "").trim();
 
             if (!targetUsername) {
@@ -115,6 +115,13 @@ export async function onRequest(context) {
                 return json({
                     success: false,
                     error: "Enter a player username."
+                }, 400);
+            }
+
+            if (targetUsername === OWNER_USERNAME) {
+                return json({
+                    success: false,
+                    error: "Use the owner account separately."
                 }, 400);
             }
 
@@ -308,6 +315,13 @@ export async function onRequest(context) {
                 return json({
                     success: false,
                     error: "Enter a player username."
+                }, 400);
+            }
+
+            if (targetUsername === OWNER_USERNAME) {
+                return json({
+                    success: false,
+                    error: "Use the owner account separately."
                 }, 400);
             }
 
