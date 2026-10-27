@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Boxing Punching Bag Clicker</title>
+    <title>Punch Bag: Power Clicker</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome Icons -->
@@ -69,9 +69,23 @@
         #optimization-tip.hidden { display: none; }
         @media (max-width: 700px) {
             #shop-container { min-height: 0; }
-            #settings-modal > div, #username-modal > div, #leaderboard-modal > div { max-height: 92vh; overflow-y: auto; }
+            #settings-modal > div, #username-modal > div, #leaderboard-modal > div { max-height: 90vh; overflow-y: auto; }
+            #settings-modal > div { overscroll-behavior: contain; }
             #username-modal > div { width: min(100%, 430px); }
             #shop-container { overscroll-behavior: contain; }
+        }
+        @media (max-width: 700px), (max-height: 760px) {
+            #settings-modal > div {
+                max-height: 88vh;
+                padding: 1rem;
+                gap: 1rem;
+                border-radius: 1rem;
+            }
+            #settings-modal h3 { font-size: 1.6rem; line-height: 1; }
+            #settings-modal .space-y-3 { row-gap: 0.6rem; }
+            #settings-modal .space-y-6 { row-gap: 1rem; }
+            #settings-modal .p-4 { padding: 0.75rem; }
+            #settings-modal .p-3 { padding: 0.65rem; }
         }
         @media (min-width: 701px) and (max-width: 1100px) {
             #game-app aside { width: 360px !important; }
@@ -188,7 +202,7 @@
                             </div>
                             <div id="rebirth-status" class="text-[11px] text-slate-400">Reach $1M to rebirth</div>
                         </div>
-                        <button id="btn-rebirth" type="button" class="px-3 py-2 rounded-xl text-xs font-black bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed">
+                        <button id="btn-rebirth" class="px-3 py-2 rounded-xl text-xs font-black bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed">
                             REBIRTH
                         </button>
                     </div>
@@ -387,7 +401,7 @@
             <div class="space-y-3 border-t border-slate-800 pt-4">
                 <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400">About Game</h4>
                 <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 text-center space-y-2">
-                    <div class="font-arcade text-2xl text-blue-400 font-bold">2D Boxing Punching Bag Clicker</div>
+                    <div class="font-arcade text-2xl text-blue-400 font-bold">Punch Bag: Power Clicker</div>
                     <div class="text-xs text-slate-400">Designed with dynamic spring physics, object-pooling performance engine, and high difficulty curve.</div>
                     <div class="text-xs text-slate-300 font-bold pt-1 border-t border-slate-900">
                         Creator: <span class="text-yellow-400">Syed Muhammad</span>
@@ -1393,24 +1407,13 @@
         }
 
         async function performRebirth() {
-            const plan = getAffordableRebirthPlan();
-            if (!plan || plan.count <= 0) {
-                updateRebirthUI();
-                return;
-            }
+            const { plan } = getAffordableRebirthPlan();
+            if (!plan.count) return;
 
-            // Do not stop the permanent online sync loop during a rebirth.
-            // Only cancel an older in-flight save so it cannot overwrite the
-            // newly rebirthed state.
-            try { if (onlineSyncController) onlineSyncController.abort(); } catch (e) {}
-            onlineSyncController = null;
-            onlineSyncInFlight = false;
-            clearTimeout(onlineSyncTimer);
+            abortOnlineSync();
 
-            // Apply the rebirth locally first so the button always produces
-            // an immediate, visible result even if the server is unavailable.
-            gameState.rebirths = Math.max(0, Math.floor(gameState.rebirths)) + plan.count;
-            gameState.rebirthTokens = Math.max(0, Math.floor(gameState.rebirthTokens)) + plan.totalTokens;
+            gameState.rebirths += plan.count;
+            gameState.rebirthTokens += plan.totalTokens;
 
             // Spend the exact total cost and keep any cash left after the bulk rebirth.
             gameState.cash = Math.max(0, plan.remainingCash);
@@ -1421,25 +1424,18 @@
             gameState.frenzyMeter = 0;
 
             for (const key in gameState.upgrades) {
-                if (gameState.upgrades[key]) gameState.upgrades[key].count = 0;
+                gameState.upgrades[key].count = 0;
             }
-
             invalidateStatsCache();
 
-            const modal = document.getElementById('rebirth-modal');
-            if (modal) modal.classList.add('hidden');
-
-            try { initAudio(); playSound('upgrade'); } catch (e) {}
+            document.getElementById('rebirth-modal').classList.add('hidden');
+            playSound('upgrade');
             calculateStats(true);
             renderShop();
-            updateTokenShopStates();
-            updateRebirthUI();
-
-            // Save locally immediately. Then try the server without allowing
-            // a server error to make the rebirth look broken.
             saveGame();
-            try { await syncOnlineProgress(); } catch (e) {}
             updateRebirthUI();
+            updateTokenShopStates();
+            await syncOnlineProgress();
         }
 
         document.getElementById('btn-rebirth').addEventListener('click', openRebirthModal);
@@ -2166,8 +2162,7 @@
             onlineSyncController = null;
             onlineSyncInFlight = false;
             clearTimeout(onlineSyncTimer);
-            // Keep the recurring online sync interval alive.
-            // Rebirth/reset operations should not permanently disable syncing.
+            clearInterval(onlineSyncInterval);
         }
 
         async function fetchWorldwideLeaderboard() {
