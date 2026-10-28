@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Punch Bag: Power Clicker</title>
+    <title>Boxing Punching Bag Clicker</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome Icons -->
@@ -69,23 +69,9 @@
         #optimization-tip.hidden { display: none; }
         @media (max-width: 700px) {
             #shop-container { min-height: 0; }
-            #settings-modal > div, #username-modal > div, #leaderboard-modal > div { max-height: 90vh; overflow-y: auto; }
-            #settings-modal > div { overscroll-behavior: contain; }
+            #settings-modal > div, #username-modal > div, #leaderboard-modal > div { max-height: 92vh; overflow-y: auto; }
             #username-modal > div { width: min(100%, 430px); }
             #shop-container { overscroll-behavior: contain; }
-        }
-        @media (max-width: 700px), (max-height: 760px) {
-            #settings-modal > div {
-                max-height: 88vh;
-                padding: 1rem;
-                gap: 1rem;
-                border-radius: 1rem;
-            }
-            #settings-modal h3 { font-size: 1.6rem; line-height: 1; }
-            #settings-modal .space-y-3 { row-gap: 0.6rem; }
-            #settings-modal .space-y-6 { row-gap: 1rem; }
-            #settings-modal .p-4 { padding: 0.75rem; }
-            #settings-modal .p-3 { padding: 0.65rem; }
         }
         @media (min-width: 701px) and (max-width: 1100px) {
             #game-app aside { width: 360px !important; }
@@ -202,7 +188,7 @@
                             </div>
                             <div id="rebirth-status" class="text-[11px] text-slate-400">Reach $1M to rebirth</div>
                         </div>
-                        <button id="btn-rebirth" class="px-3 py-2 rounded-xl text-xs font-black bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed">
+                        <button id="btn-rebirth" type="button" class="px-3 py-2 rounded-xl text-xs font-black bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed">
                             REBIRTH
                         </button>
                     </div>
@@ -355,6 +341,20 @@
         </button>
     </div>
 
+    <!-- AUTO-PAUSE OVERLAY -->
+    <div id="game-pause-overlay" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[95] hidden items-center justify-center p-5">
+        <div class="w-full max-w-sm bg-slate-900 border border-blue-700/50 rounded-2xl p-6 text-center shadow-2xl">
+            <div class="w-16 h-16 mx-auto rounded-2xl bg-blue-600/15 border border-blue-500/30 flex items-center justify-center text-blue-400 text-2xl">
+                <i class="fas fa-pause"></i>
+            </div>
+            <h3 class="font-arcade text-2xl text-white font-bold mt-4">GAME PAUSED</h3>
+            <p class="text-sm text-slate-400 mt-2">The game paused because you left it. Tap anywhere to continue.</p>
+            <button id="btn-resume-game" type="button" class="w-full mt-5 px-4 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black">
+                <i class="fas fa-play mr-2"></i> RESUME GAME
+            </button>
+        </div>
+    </div>
+
     <!-- SETTINGS & ABOUT MODAL -->
     <div id="settings-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-6 relative shadow-2xl space-y-6">
@@ -395,13 +395,23 @@
                         ENABLED
                     </button>
                 </div>
+
+                <div class="flex justify-between items-center bg-slate-950 p-3 rounded-xl border border-slate-800">
+                    <div class="min-w-0 pr-3">
+                        <div class="font-semibold text-sm">Punching</div>
+                        <div class="text-xs text-slate-500">OFF = the bag stays visible, but punches, auto punches, and earnings stop. Upgrades and rebirth still work.</div>
+                    </div>
+                    <button id="btn-toggle-punching" type="button" aria-pressed="true" class="shrink-0 min-w-[88px] px-3 py-2 rounded-lg text-xs font-bold bg-emerald-600 text-white">
+                        ON
+                    </button>
+                </div>
             </div>
 
             <!-- About Section -->
             <div class="space-y-3 border-t border-slate-800 pt-4">
                 <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400">About Game</h4>
                 <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 text-center space-y-2">
-                    <div class="font-arcade text-2xl text-blue-400 font-bold">Punch Bag: Power Clicker</div>
+                    <div class="font-arcade text-2xl text-blue-400 font-bold">2D Boxing Punching Bag Clicker</div>
                     <div class="text-xs text-slate-400">Designed with dynamic spring physics, object-pooling performance engine, and high difficulty curve.</div>
                     <div class="text-xs text-slate-300 font-bold pt-1 border-t border-slate-900">
                         Creator: <span class="text-yellow-400">Syed Muhammad</span>
@@ -454,6 +464,7 @@
             rebirthTokens: 0,
             lowGraphics: false,
             soundEnabled: true,
+            punchingEnabled: true,
             activeBagSkin: 'canvas',
             upgrades: {
                 // Tap Power (CPC)
@@ -548,8 +559,8 @@
             ];
             const icons = ['fa-bolt','fa-fire','fa-star','fa-atom','fa-meteor','fa-crown','fa-gem','fa-dumbbell','fa-hand-fist','fa-sparkles'];
 
-            // 500 extra Power upgrades
-            for (let i = 1; i <= 500; i++) {
+            // 800 extra Power upgrades
+            for (let i = 1; i <= 800; i++) {
                 const key = `megaPower${i}`;
                 const tier = i;
                 const name = `${powerNames[(i-1) % powerNames.length]} ${tier}`;
@@ -561,8 +572,8 @@
                 };
             }
 
-            // 500 extra Auto upgrades
-            for (let i = 1; i <= 500; i++) {
+            // 800 extra Auto upgrades
+            for (let i = 1; i <= 800; i++) {
                 const key = `megaAuto${i}`;
                 const name = `${autoNames[(i-1) % autoNames.length]} ${i}`;
                 const base = Math.floor(2e16 * Math.pow(1.17, i - 1));
@@ -573,8 +584,8 @@
                 };
             }
 
-            // 500 extra Boost upgrades
-            for (let i = 1; i <= 500; i++) {
+            // 800 extra Boost upgrades
+            for (let i = 1; i <= 800; i++) {
                 const key = `megaBoost${i}`;
                 const name = `${boostNames[(i-1) % boostNames.length]} ${i}`;
                 const base = Math.floor(1e10 * Math.pow(1.28, i - 1));
@@ -585,13 +596,13 @@
                 };
             }
 
-            // 500 extra Token Shop options.
+            // 800 extra Token Shop options.
             // Each one gives a permanent global earnings boost and is intentionally affordable.
             const tokenNames = [
                 'Power Token','Cash Token','Fury Token','Lucky Token','Champion Token',
                 'Titan Token','Cosmic Token','Infinity Token','Eternal Token','Ascension Token'
             ];
-            for (let i = 1; i <= 500; i++) {
+            for (let i = 1; i <= 800; i++) {
                 const key = `megaToken${i}`;
                 const tokenPrice = Math.max(1, Math.floor(2 + i * 0.45));
                 const tokenBoost = 0.01 + (i * 0.001);
@@ -606,7 +617,7 @@
                 };
             }
 
-            // 500 extra Bag/skin options.
+            // 800 extra Bag/skin options.
             // They keep the same bag system, so they work with the existing renderer/equip flow.
             const skinNames = [
                 'Neon','Inferno','Frost','Venom','Thunder','Shadow','Solar','Lunar',
@@ -616,7 +627,7 @@
                 '#22d3ee','#f97316','#60a5fa','#84cc16','#facc15','#8b5cf6',
                 '#fb7185','#38bdf8','#a78bfa','#e879f9','#34d399','#f43f5e'
             ];
-            for (let i = 1; i <= 500; i++) {
+            for (let i = 1; i <= 800; i++) {
                 const key = `megaSkin${i}`;
                 const price = Math.floor(5000 * Math.pow(1.115, i - 1));
                 const multiplier = 2 + (i * 1.25);
@@ -659,6 +670,12 @@
         const settingsModal = document.getElementById('settings-modal');
         const btnToggleFx = document.getElementById('btn-toggle-fx');
         const btnToggleSound = document.getElementById('btn-toggle-sound');
+        const btnTogglePunching = document.getElementById('btn-toggle-punching');
+        const pauseOverlay = document.getElementById('game-pause-overlay');
+        const btnResumeGame = document.getElementById('btn-resume-game');
+
+        let gamePaused = false;
+        let pauseNeedsResumeClick = false;
 
         let currentTab = 'power';
         let audioCtx = null;
@@ -704,6 +721,39 @@
             }
         }
 
+        // ===== GAME PAUSE / RESUME =====
+        function setGamePaused(paused, requireClick = false) {
+            gamePaused = !!paused;
+            pauseNeedsResumeClick = !!requireClick;
+            if (pauseOverlay) {
+                pauseOverlay.classList.toggle('hidden', !gamePaused);
+                pauseOverlay.classList.toggle('flex', gamePaused);
+            }
+            if (gamePaused) {
+                autoPunchAccumulator = 0;
+                lastTime = performance.now();
+                try { _saveGameOriginal ? _saveGameOriginal() : saveGame(); } catch (e) {}
+            } else {
+                autoPunchAccumulator = 0;
+                lastTime = performance.now();
+                pauseNeedsResumeClick = false;
+            }
+        }
+
+        function resumeGameFromPause() {
+            if (!gamePaused) return;
+            setGamePaused(false, false);
+        }
+
+        pauseOverlay?.addEventListener('pointerdown', (event) => {
+            event.preventDefault();
+            resumeGameFromPause();
+        });
+        btnResumeGame?.addEventListener('click', (event) => {
+            event.preventDefault();
+            resumeGameFromPause();
+        });
+
         // Fullscreen Handling
         function toggleFullscreen() {
             const isFull = document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement;
@@ -741,6 +791,30 @@
         document.getElementById('btn-close-settings').addEventListener('click', closeSettings);
         document.getElementById('btn-save-close').addEventListener('click', closeSettings);
 
+        function applyPunchingMode() {
+            const enabled = !!gameState.punchingEnabled;
+            if (btnTogglePunching) {
+                btnTogglePunching.textContent = enabled ? 'ON' : 'OFF';
+                btnTogglePunching.setAttribute('aria-pressed', enabled ? 'true' : 'false');
+                btnTogglePunching.className = `shrink-0 min-w-[88px] px-3 py-2 rounded-lg text-xs font-bold ${enabled ? 'bg-emerald-600' : 'bg-slate-700'} text-white`;
+            }
+        }
+
+        function setPunchingEnabled(enabled, persist = true) {
+            gameState.punchingEnabled = !!enabled;
+            if (!gameState.punchingEnabled) {
+                autoPunchAccumulator = 0;
+                // Stop only active punch visuals. The shop, settings and rebirth remain usable.
+                gloves.left.active = false;
+                gloves.right.active = false;
+                sparkPool.active.slice().forEach(p => sparkPool.recycle(p));
+                floatingTextPool.active.slice().forEach(p => floatingTextPool.recycle(p));
+            }
+            applyPunchingMode();
+            calculateStats(true);
+            if (persist) saveGame();
+        }
+
         function applyGraphicsMode() {
             const enabled = !!gameState.lowGraphics;
             document.body.classList.toggle('low-performance-mode', enabled);
@@ -771,6 +845,10 @@
             btnToggleSound.textContent = gameState.soundEnabled ? 'ENABLED' : 'MUTED';
             btnToggleSound.className = `px-3 py-1.5 rounded-lg text-xs font-bold ${gameState.soundEnabled ? 'bg-emerald-600' : 'bg-slate-700'} text-white`;
             saveGame();
+        });
+
+        btnTogglePunching?.addEventListener('click', () => {
+            setPunchingEnabled(!gameState.punchingEnabled);
         });
 
         document.getElementById('btn-reset-data').addEventListener('click', () => {
@@ -1043,6 +1121,8 @@
         }
 
         function triggerHit(hitX, hitY, isAuto = false, skipUiSave = false) {
+            if (!gameState.punchingEnabled || gamePaused) return false;
+
             if (!isAuto || !gameState.lowGraphics) {
                 initAudio();
                 playSound('punch');
@@ -1097,6 +1177,7 @@
                 calculateStats();
                 saveGame();
             }
+            return true;
         }
 
         function activateFrenzy() {
@@ -1106,6 +1187,7 @@
             document.getElementById('frenzy-banner').classList.remove('hidden');
 
             const timer = setInterval(() => {
+                if (gamePaused || !gameState.punchingEnabled || document.visibilityState !== 'visible') return;
                 gameState.frenzyMeter -= 4;
                 document.getElementById('frenzy-bar').style.width = `${gameState.frenzyMeter}%`;
                 if (gameState.frenzyMeter <= 0) {
@@ -1120,6 +1202,11 @@
 
         canvas.addEventListener('pointerdown', (e) => {
             e.preventDefault();
+            if (gamePaused) {
+                resumeGameFromPause();
+                return;
+            }
+            if (!gameState.punchingEnabled) return;
             const rect = canvas.getBoundingClientRect();
             const clientX = e.clientX - rect.left;
             const clientY = e.clientY - rect.top;
@@ -1139,6 +1226,12 @@
         let lowGraphicsFrameCounter = 0;
         let lastLowRenderAt = 0;
         function updateAndRender(now) {
+            if (gamePaused || document.visibilityState !== 'visible') {
+                lastTime = now;
+                requestAnimationFrame(updateAndRender);
+                return;
+            }
+
             if (gameState.lowGraphics) {
                 if (now - lastLowRenderAt < 32) {
                     requestAnimationFrame(updateAndRender);
@@ -1150,7 +1243,7 @@
             lastTime = now;
 
             // Auto Punch Accumulator
-            if (gameState.cpsMultiplier > 0) {
+            if (gameState.punchingEnabled && gameState.cpsMultiplier > 0) {
                 autoPunchAccumulator += dt * gameState.cpsMultiplier;
                 if (autoPunchAccumulator >= 1) {
                     const hits = Math.floor(autoPunchAccumulator);
@@ -1407,13 +1500,24 @@
         }
 
         async function performRebirth() {
-            const { plan } = getAffordableRebirthPlan();
-            if (!plan.count) return;
+            const plan = getAffordableRebirthPlan();
+            if (!plan || plan.count <= 0) {
+                updateRebirthUI();
+                return;
+            }
 
-            abortOnlineSync();
+            // Do not stop the permanent online sync loop during a rebirth.
+            // Only cancel an older in-flight save so it cannot overwrite the
+            // newly rebirthed state.
+            try { if (onlineSyncController) onlineSyncController.abort(); } catch (e) {}
+            onlineSyncController = null;
+            onlineSyncInFlight = false;
+            clearTimeout(onlineSyncTimer);
 
-            gameState.rebirths += plan.count;
-            gameState.rebirthTokens += plan.totalTokens;
+            // Apply the rebirth locally first so the button always produces
+            // an immediate, visible result even if the server is unavailable.
+            gameState.rebirths = Math.max(0, Math.floor(gameState.rebirths)) + plan.count;
+            gameState.rebirthTokens = Math.max(0, Math.floor(gameState.rebirthTokens)) + plan.totalTokens;
 
             // Spend the exact total cost and keep any cash left after the bulk rebirth.
             gameState.cash = Math.max(0, plan.remainingCash);
@@ -1424,18 +1528,25 @@
             gameState.frenzyMeter = 0;
 
             for (const key in gameState.upgrades) {
-                gameState.upgrades[key].count = 0;
+                if (gameState.upgrades[key]) gameState.upgrades[key].count = 0;
             }
+
             invalidateStatsCache();
 
-            document.getElementById('rebirth-modal').classList.add('hidden');
-            playSound('upgrade');
+            const modal = document.getElementById('rebirth-modal');
+            if (modal) modal.classList.add('hidden');
+
+            try { initAudio(); playSound('upgrade'); } catch (e) {}
             calculateStats(true);
             renderShop();
-            saveGame();
-            updateRebirthUI();
             updateTokenShopStates();
-            await syncOnlineProgress();
+            updateRebirthUI();
+
+            // Save locally immediately. Then try the server without allowing
+            // a server error to make the rebirth look broken.
+            saveGame();
+            try { await syncOnlineProgress(); } catch (e) {}
+            updateRebirthUI();
         }
 
         document.getElementById('btn-rebirth').addEventListener('click', openRebirthModal);
@@ -1684,7 +1795,8 @@
                     rebirthTokens: gameState.rebirthTokens,
                     tokenShop: gameState.tokenShop,
                     lowGraphics: gameState.lowGraphics,
-                    soundEnabled: gameState.soundEnabled
+                    soundEnabled: gameState.soundEnabled,
+                    punchingEnabled: gameState.punchingEnabled
                 };
                 localStorage.setItem('boxing_clicker_save_v2', JSON.stringify(data));
             } catch (e) {}
@@ -1702,6 +1814,7 @@
                     gameState.rebirthTokens = Math.max(0, Math.floor(data.rebirthTokens || 0));
                     gameState.lowGraphics = !!data.lowGraphics;
                     gameState.soundEnabled = data.soundEnabled !== false;
+                    gameState.punchingEnabled = data.punchingEnabled !== false;
                     if (data.tokenShop) {
                         for (const k in data.tokenShop) {
                             if (gameState.tokenShop[k]) gameState.tokenShop[k].count = Math.max(0, Math.min(gameState.tokenShop[k].max, Math.floor(data.tokenShop[k].count || 0)));
@@ -2162,7 +2275,8 @@
             onlineSyncController = null;
             onlineSyncInFlight = false;
             clearTimeout(onlineSyncTimer);
-            clearInterval(onlineSyncInterval);
+            // Keep the recurring online sync interval alive.
+            // Rebirth/reset operations should not permanently disable syncing.
         }
 
         async function fetchWorldwideLeaderboard() {
@@ -2301,14 +2415,20 @@
 
         window.addEventListener('pagehide', () => {
             if (resetInProgress) return;
+            setGamePaused(true, false);
             try { _saveGameOriginal(); } catch(e) {}
             sendFinalOnlineSave();
         });
         document.addEventListener('visibilitychange', () => {
             if (resetInProgress) return;
             if (document.visibilityState === 'hidden') {
+                setGamePaused(true, false);
                 try { _saveGameOriginal(); } catch(e) {}
                 sendFinalOnlineSave();
+            } else {
+                // Returning to the game does not instantly resume it.
+                // The player must tap the game/resume button first.
+                setGamePaused(true, true);
             }
         });
 
@@ -2336,6 +2456,7 @@
         window.onload = async function() {
             loadGame();
             applyGraphicsMode();
+            applyPunchingMode();
             await ensureProfile();
             startSessionActivityLoop();
             resizeCanvas();
