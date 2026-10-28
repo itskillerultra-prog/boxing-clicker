@@ -597,18 +597,22 @@
             }
 
             // 800 extra Token Shop options.
-            // Each one gives a permanent global earnings boost and is intentionally affordable.
+            // These are intentionally much harder than the normal upgrades:
+            // prices rise exponentially while each tier gives a stronger permanent reward.
             const tokenNames = [
                 'Power Token','Cash Token','Fury Token','Lucky Token','Champion Token',
                 'Titan Token','Cosmic Token','Infinity Token','Eternal Token','Ascension Token'
             ];
             for (let i = 1; i <= 800; i++) {
                 const key = `megaToken${i}`;
-                const tokenPrice = Math.max(1, Math.floor(2 + i * 0.45));
-                const tokenBoost = 0.01 + (i * 0.001);
+                // Starts expensive and becomes extremely difficult at high tiers.
+                const tokenPrice = Math.floor(25 * Math.pow(1.055, i - 1));
+                // Stronger rewards at higher tiers, but still balanced by the steep price.
+                const tokenBoost = 0.015 + (i * 0.0015);
                 gameState.tokenShop[key] = {
                     count: 0,
                     price: tokenPrice,
+                    basePrice: tokenPrice,
                     max: 1,
                     name: `${tokenNames[(i - 1) % tokenNames.length]} ${i}`,
                     desc: `+${(tokenBoost * 100).toFixed(1)}% permanent total earnings`,
@@ -1086,7 +1090,7 @@
 
             const skinMult = gameState.bags[gameState.activeBagSkin].multiplier;
             const frenzyMult = gameState.frenzyActive ? 2 : 1;
-            const rebirthMult = 1 + (gameState.rebirths * 0.25);
+            const rebirthMult = 1 + (gameState.rebirths * 0.30);
             const tokenCashMult = 1 + ((gameState.tokenShop?.cashBoost?.count || 0) * 0.05);
             const tokenPunchMult = 1 + ((gameState.tokenShop?.punchBoost?.count || 0) * 0.05);
             const tokenAutoMult = 1 + ((gameState.tokenShop?.autoBoost?.count || 0) * 0.05);
@@ -1109,7 +1113,7 @@
 
             // Throttle DOM work so very high CPS does not rebuild shop buttons on every punch.
             const now = performance.now();
-            if (!forceUi && now - lastHudUiRefresh < 100) return;
+            if (!forceUi && now - lastHudUiRefresh < 16) return;
             lastHudUiRefresh = now;
             cashDisplayMobile.textContent = `$${formatNumber(gameState.cash)}`;
             cashDisplayDesktop.textContent = `$${formatNumber(gameState.cash)}`;
@@ -1118,6 +1122,7 @@
             cpsDisplayMobile.textContent = `${formatNumber(gameState.cpsMultiplier)}/s`;
             cpsDisplayDesktop.textContent = `${formatNumber(gameState.cpsMultiplier)}/s`;
             updateRebirthUI();
+            scheduleShopStateRefresh();
         }
 
         function triggerHit(hitX, hitY, isAuto = false, skipUiSave = false) {
@@ -1391,14 +1396,14 @@
 
         // ===== INFINITE REBIRTH SYSTEM =====
         // Rebirth #1 costs $1M, rebirth #2 costs $12M.
-        // From #3 onward the cost grows by 1.214x. This keeps the early rebirths
+        // From #3 onward the cost grows by 1.24x. This keeps the early rebirths
         // meaningful while allowing a very rich player to bulk-rebirth (for example,
         // around $13T can reach roughly Rebirth x64).
         function getRebirthCostForNumber(rebirthNumber) {
             const n = Math.max(1, Math.floor(rebirthNumber));
             if (n === 1) return 1_000_000;
             if (n === 2) return 12_000_000;
-            const cost = 12_000_000 * Math.pow(1.214, n - 2);
+            const cost = 12_000_000 * Math.pow(1.24, n - 2);
             return Math.min(cost, Number.MAX_VALUE);
         }
 
@@ -1430,7 +1435,7 @@
             const discount = gameState.tokenShop?.tokenDiscount?.count || 0;
             const rush = gameState.tokenShop?.rebirthRush?.count || 0;
             const mastery = gameState.tokenShop?.tokenMastery?.count || 0;
-            return 5 + Math.floor((Math.max(0, rebirthNumber - 1)) / 5) + discount + (rush * 2) + Math.floor(mastery / 5);
+            return 8 + Math.floor((Math.max(0, rebirthNumber - 1)) / 5) + discount + (rush * 3) + Math.floor(mastery / 5);
         }
 
         function getRebirthTokenReward() {
@@ -1451,7 +1456,7 @@
             const plan = getAffordableRebirthPlan();
             const cost = getRebirthCost();
             const canRebirth = plan.count > 0;
-            const nextBonus = gameState.rebirths * 25 + 25;
+            const nextBonus = gameState.rebirths * 30 + 30;
 
             const status = document.getElementById('rebirth-status');
             const count = document.getElementById('rebirth-count');
@@ -1464,7 +1469,7 @@
                     : `Need $${formatNumber(cost)} • ${getRebirthTitle()} rank`;
             }
             if (count) count.textContent = `Rebirths: ${formatNumber(gameState.rebirths)} • Tokens: ${formatNumber(gameState.rebirthTokens)}`;
-            if (bonus) bonus.textContent = `Permanent bonus: +${gameState.rebirths * 25}%`;
+            if (bonus) bonus.textContent = `Permanent bonus: +${gameState.rebirths * 30}%`;
             const rank = document.getElementById('rank-display');
             const tokenDisplay = document.getElementById('token-display');
             if (rank) rank.textContent = getRebirthTitle();
@@ -1490,9 +1495,9 @@
             const firstCost = getRebirthCostForNumber(gameState.rebirths + 1);
             const lastCost = getRebirthCostForNumber(gameState.rebirths + plan.count);
             document.getElementById('rebirth-modal-text').textContent =
-                `Do you want to do rebirth x${plan.count}? Your normal cash and upgrades will reset, while your permanent rebirth progress stays.`;
+                `Do you want to do rebirth x${plan.count}? Your normal cash and upgrades will reset to 0, while your permanent rebirth progress stays.`;
             document.getElementById('rebirth-modal-bonus').textContent =
-                `+${nextBonus}% → +${(gameState.rebirths + plan.count) * 25}%`;
+                `+${nextBonus}% → +${(gameState.rebirths + plan.count) * 30}%`;
             document.getElementById('rebirth-modal-tokens').textContent =
                 `+${formatNumber(plan.totalTokens)} tokens • Cost: $${formatNumber(plan.totalCost)}`;
             const modal = document.getElementById('rebirth-modal');
@@ -1519,8 +1524,9 @@
             gameState.rebirths = Math.max(0, Math.floor(gameState.rebirths)) + plan.count;
             gameState.rebirthTokens = Math.max(0, Math.floor(gameState.rebirthTokens)) + plan.totalTokens;
 
-            // Spend the exact total cost and keep any cash left after the bulk rebirth.
-            gameState.cash = Math.max(0, plan.remainingCash);
+            // A rebirth starts the normal economy over completely.
+            // The permanent rebirth bonus/tokens are kept above.
+            gameState.cash = 0;
             gameState.totalPunches = 0;
             gameState.cpcMultiplier = 1;
             gameState.cpsMultiplier = 0;
@@ -1555,6 +1561,13 @@
         });
         document.getElementById('btn-confirm-rebirth').addEventListener('click', performRebirth);
 
+        // Slight difficulty increase: upgrade prices grow a little faster each purchase.
+        // Kept small so the game is harder without making progression unfair.
+        const UPGRADE_DIFFICULTY_GROWTH = 1.0125;
+        function getUpgradePrice(item) {
+            return Math.floor(item.basePrice * Math.pow(item.growth * UPGRADE_DIFFICULTY_GROWTH, item.count));
+        }
+
         // SHOP UI GENERATOR
         function renderShop() {
             shopContainer.innerHTML = '';
@@ -1568,7 +1581,7 @@
 
                     if (!isPower && !isAuto && !isBoost) continue;
 
-                    const price = Math.floor(item.basePrice * Math.pow(item.growth, item.count));
+                    const price = getUpgradePrice(item);
 
                     const card = document.createElement('div');
                     card.id = `upgrade-card-${key}`;
@@ -1633,12 +1646,21 @@
             updateShopItemStates();
         }
 
-        // REAL-TIME STATE REFRESHER (Fixes delayed button activation)
+        // REAL-TIME STATE REFRESHER (one browser frame; much faster than 0.1s)
+        let shopRefreshFrame = 0;
+        function scheduleShopStateRefresh() {
+            if (shopRefreshFrame) return;
+            shopRefreshFrame = requestAnimationFrame(() => {
+                shopRefreshFrame = 0;
+                updateShopItemStates();
+            });
+        }
+
         function updateShopItemStates() {
             if (currentTab === 'power' || currentTab === 'auto' || currentTab === 'boost') {
                 for (const key in gameState.upgrades) {
                     const item = gameState.upgrades[key];
-                    const price = Math.floor(item.basePrice * Math.pow(item.growth, item.count));
+                    const price = getUpgradePrice(item);
                     const canAfford = gameState.cash >= price;
 
                     const btn = document.getElementById(`buy-btn-${key}`);
@@ -1689,7 +1711,7 @@
 
         function buyUpgrade(key) {
             const item = gameState.upgrades[key];
-            const price = Math.floor(item.basePrice * Math.pow(item.growth, item.count));
+            const price = getUpgradePrice(item);
 
             if (gameState.cash >= price) {
                 gameState.cash -= price;
@@ -1720,10 +1742,22 @@
             }
         }
 
+        function getTokenUpgradePrice(item) {
+            if (!item) return Number.MAX_SAFE_INTEGER;
+            const base = Math.max(1, Number(item.basePrice || item.price || 1));
+            const count = Math.max(0, Math.floor(Number(item.count) || 0));
+            // Existing token upgrades also become progressively harder after each purchase.
+            const growth = item.tokenBoost ? 1.055 : 1.18;
+            const price = Math.ceil(base * Math.pow(growth, count));
+            return Number.isFinite(price) ? price : Number.MAX_SAFE_INTEGER;
+        }
+
         function buyTokenUpgrade(key) {
             const item = gameState.tokenShop[key];
-            if (!item || item.count >= item.max || gameState.rebirthTokens < item.price) return;
-            gameState.rebirthTokens -= item.price;
+            if (!item || item.count >= item.max) return;
+            const currentPrice = getTokenUpgradePrice(item);
+            if (gameState.rebirthTokens < currentPrice) return;
+            gameState.rebirthTokens -= currentPrice;
             item.count++;
             invalidateStatsCache();
             playSound('upgrade');
@@ -1744,8 +1778,9 @@
                     btn.innerHTML='MAXED';
                     btn.className = 'min-w-[82px] px-2 py-2 rounded-xl text-xs font-bold bg-emerald-950 text-emerald-400 border border-emerald-800';
                 } else {
-                    btn.innerHTML=`<span class="block text-[9px] uppercase opacity-70">COST</span><span class="block text-sm font-black">${item.price}</span><span class="block text-[9px] uppercase opacity-70">TOKENS</span>`;
-                    if (gameState.rebirthTokens >= item.price) {
+                    const currentPrice = getTokenUpgradePrice(item);
+                    btn.innerHTML=`<span class="block text-[9px] uppercase opacity-70">COST</span><span class="block text-sm font-black">${formatNumber(currentPrice)}</span><span class="block text-[9px] uppercase opacity-70">TOKENS</span>`;
+                    if (gameState.rebirthTokens >= currentPrice) {
                         btn.className = 'min-w-[82px] px-2 py-2 rounded-xl text-xs font-bold bg-purple-600 hover:bg-purple-500 text-white cursor-pointer';
                     } else {
                         btn.className = 'min-w-[82px] px-2 py-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-500 border border-slate-800 cursor-not-allowed';
@@ -2403,6 +2438,7 @@
             cpsDisplayMobile.textContent = formatNumber(Math.floor(gameState.cpsMultiplier)) + '/s';
             cpsDisplayDesktop.textContent = formatNumber(Math.floor(gameState.cpsMultiplier)) + '/s';
             updateRebirthUI();
+            scheduleShopStateRefresh();
             if (currentTab === 'tokens') updateTokenShopStates();
         };
 
