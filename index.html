@@ -178,6 +178,17 @@
                 </button>
             </div>
 
+            <!-- BULK PURCHASE MODE -->
+            <div id="bulk-buy-bar" class="px-3 pt-2">
+                <div class="rounded-xl bg-slate-950 border border-slate-800 p-2 flex items-center gap-1.5">
+                    <span id="bulk-buy-label" class="text-[9px] font-black uppercase tracking-wider text-slate-500 mr-1">BUY</span>
+                    <button type="button" id="bulk-1" class="bulk-buy-mode flex-1 min-w-0 px-2 py-1.5 rounded-lg text-[10px] font-black bg-blue-600 text-white">1X</button>
+                    <button type="button" id="bulk-10" class="bulk-buy-mode flex-1 min-w-0 px-2 py-1.5 rounded-lg text-[10px] font-black bg-slate-800 text-slate-400">10X</button>
+                    <button type="button" id="bulk-100" class="bulk-buy-mode flex-1 min-w-0 px-2 py-1.5 rounded-lg text-[10px] font-black bg-slate-800 text-slate-400">100X</button>
+                    <button type="button" id="bulk-max" class="bulk-buy-mode flex-1 min-w-0 px-2 py-1.5 rounded-lg text-[10px] font-black bg-slate-800 text-slate-400">MAX</button>
+                </div>
+            </div>
+
             <!-- INFINITE REBIRTH PANEL -->
             <div class="px-3 pt-3">
                 <div class="rounded-2xl border border-purple-800/60 bg-gradient-to-r from-purple-950/70 to-slate-950 p-3 shadow-lg">
@@ -1568,6 +1579,118 @@
             return Math.floor(item.basePrice * Math.pow(item.growth * UPGRADE_DIFFICULTY_GROWTH, item.count));
         }
 
+        // ===== COOKIE-CLICKER STYLE BULK BUY MODE =====
+        // One global mode controls Power / Auto / Boost / Token purchases.
+        // Skins stay one-at-a-time because each skin is a unique item.
+        let bulkBuyMode = 1;
+
+        function setBulkBuyMode(mode) {
+            bulkBuyMode = mode === 'max' ? 'max' : Math.max(1, Number(mode) || 1);
+            document.querySelectorAll('.bulk-buy-mode').forEach(btn => {
+                const active = btn.id === `bulk-${bulkBuyMode === 'max' ? 'max' : bulkBuyMode}`;
+                btn.className = `bulk-buy-mode flex-1 min-w-0 px-2 py-1.5 rounded-lg text-[10px] font-black ${active ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400'}`;
+            });
+            updateShopItemStates();
+        }
+
+        document.getElementById('bulk-1').addEventListener('click', () => setBulkBuyMode(1));
+        document.getElementById('bulk-10').addEventListener('click', () => setBulkBuyMode(10));
+        document.getElementById('bulk-100').addEventListener('click', () => setBulkBuyMode(100));
+        document.getElementById('bulk-max').addEventListener('click', () => setBulkBuyMode('max'));
+
+        function getUpgradeBulkInfo(item, requestedMode = bulkBuyMode) {
+            const cash = Math.max(0, Number(gameState.cash) || 0);
+            if (!item || cash <= 0) return { count: 0, totalCost: 0 };
+
+            const growth = Math.max(1.000001, Number(item.growth || 1) * UPGRADE_DIFFICULTY_GROWTH);
+            const base = Math.max(1, Number(item.basePrice) || 1);
+            const start = Math.max(0, Math.floor(Number(item.count) || 0));
+            const priceAt = n => Math.floor(base * Math.pow(growth, start + n));
+
+            const costFor = n => {
+                n = Math.max(0, Math.floor(n));
+                if (!n) return 0;
+                const r = growth;
+                const first = Math.max(1, priceAt(0));
+                if (!Number.isFinite(r) || r <= 1.0000001) return first * n;
+                const total = first * ((Math.pow(r, n) - 1) / (r - 1));
+                return Number.isFinite(total) ? total : Number.MAX_VALUE;
+            };
+
+            let maxCount;
+            if (requestedMode === 'max') {
+                const first = Math.max(1, priceAt(0));
+                if (cash < first) return { count: 0, totalCost: 0 };
+                const r = growth;
+                const estimate = Math.floor(Math.log1p((cash * (r - 1)) / first) / Math.log(r));
+                maxCount = Math.max(1, Math.min(1000000, Number.isFinite(estimate) ? estimate + 2 : 1000000));
+
+                while (maxCount > 0 && (!Number.isFinite(costFor(maxCount)) || costFor(maxCount) > cash)) maxCount--;
+                while (maxCount < 1000000) {
+                    const nextCost = costFor(maxCount + 1);
+                    if (!Number.isFinite(nextCost) || nextCost > cash) break;
+                    maxCount++;
+                }
+            } else {
+                maxCount = Math.max(0, Math.floor(Number(requestedMode) || 1));
+                while (maxCount > 0 && costFor(maxCount) > cash) maxCount--;
+            }
+
+            return { count: maxCount, totalCost: costFor(maxCount) };
+        }
+
+        function buyUpgradeBulk(key, requestedMode = bulkBuyMode) {
+            const item = gameState.upgrades[key];
+            if (!item) return;
+            const cashBefore = Math.max(0, Number(gameState.cash) || 0);
+            const info = getUpgradeBulkInfo(item, requestedMode);
+            if (!info.count || !Number.isFinite(info.totalCost) || info.totalCost > cashBefore) return;
+
+            // Hard affordability guard: a purchase can never push cash below zero.
+            const safeCost = Math.min(cashBefore, Math.max(0, Number(info.totalCost) || 0));
+            if (safeCost <= 0) return;
+            gameState.cash = Math.max(0, cashBefore - safeCost);
+            item.count += info.count;
+            invalidateStatsCache();
+            playSound('upgrade');
+            calculateStats(true);
+            updateShopItemStates();
+            saveGame();
+        }
+
+        function getTokenBulkInfo(item, requestedMode = bulkBuyMode) {
+            if (!item || item.count >= item.max) return { count: 0, totalCost: 0 };
+            let tokens = Math.max(0, Math.floor(Number(gameState.rebirthTokens) || 0));
+            const maxAvailable = Math.max(0, item.max - item.count);
+            let count = requestedMode === 'max' ? maxAvailable : Math.min(maxAvailable, Math.max(1, Math.floor(Number(requestedMode) || 1)));
+            const growth = item.tokenBoost ? 1.055 : 1.18;
+            const base = Math.max(1, Number(item.basePrice || item.price || 1));
+            let totalCost = 0;
+            let bought = 0;
+            while (bought < count) {
+                const price = Math.ceil(base * Math.pow(growth, item.count + bought));
+                if (!Number.isFinite(price) || price > tokens - totalCost) break;
+                totalCost += price;
+                bought++;
+            }
+            return { count: bought, totalCost };
+        }
+
+        function buyTokenUpgradeBulk(key, requestedMode = bulkBuyMode) {
+            const item = gameState.tokenShop[key];
+            const info = getTokenBulkInfo(item, requestedMode);
+            const tokensBefore = Math.max(0, Math.floor(Number(gameState.rebirthTokens) || 0));
+            if (!info.count || !Number.isFinite(info.totalCost) || info.totalCost > tokensBefore) return;
+            gameState.rebirthTokens = Math.max(0, tokensBefore - Math.floor(info.totalCost));
+            item.count += info.count;
+            invalidateStatsCache();
+            playSound('upgrade');
+            calculateStats(true);
+            renderShop();
+            saveGame();
+            updateRebirthUI();
+        }
+
         // SHOP UI GENERATOR
         function renderShop() {
             shopContainer.innerHTML = '';
@@ -1605,7 +1728,7 @@
                         </button>
                     `;
 
-                    card.querySelector(`#buy-btn-${key}`).addEventListener('click', () => buyUpgrade(key));
+                    card.querySelector(`#buy-btn-${key}`).addEventListener('click', () => buyUpgradeBulk(key));
                     shopContainer.appendChild(card);
                 }
             } else if (currentTab === 'tokens') {
@@ -1615,7 +1738,7 @@
                     card.id = `token-card-${key}`;
                     card.className = 'p-3 rounded-xl border flex items-center justify-between transition bg-slate-900/80 border-slate-800';
                     card.innerHTML = `<div class="flex items-center gap-3 min-w-0"><div class="w-11 h-11 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-center text-purple-400 text-lg flex-shrink-0"><i class="fas ${item.icon}"></i></div><div class="min-w-0"><h4 class="font-bold text-sm text-slate-100">${item.name} <span id="token-count-${key}" class="text-[10px] bg-purple-950 text-purple-300 border border-purple-800/60 px-1.5 py-0.5 rounded-md">x${item.count}/${item.max}</span></h4><p class="text-xs text-slate-400">${item.desc}</p></div></div><button id="token-btn-${key}" class="min-w-[82px] px-2 py-2 rounded-xl text-xs font-bold border border-purple-800/60 bg-purple-950/70 text-purple-200"></button>`;
-                    card.querySelector(`#token-btn-${key}`).addEventListener('click', () => buyTokenUpgrade(key));
+                    card.querySelector(`#token-btn-${key}`).addEventListener('click', () => buyTokenUpgradeBulk(key));
                     shopContainer.appendChild(card);
                 }
                 updateTokenShopStates();
@@ -1668,10 +1791,12 @@
                         // Refresh both the price text and the enabled state immediately.
                         // This fixes the old bug where the button kept showing the previous price
                         // until the shop was manually refreshed.
-                        btn.textContent = `$${formatNumber(price)}`;
+                        const bulkInfo = getUpgradeBulkInfo(item);
+                        const modeLabel = bulkBuyMode === 'max' ? 'MAX' : `${bulkBuyMode}X`;
+                        btn.innerHTML = `<span class="block text-[9px] uppercase opacity-70">${modeLabel}</span><span class="block text-sm font-black">$${formatNumber(bulkInfo.totalCost || price)}</span>`;
                         const countBadge = document.querySelector(`#upgrade-card-${key} span`);
                         if (countBadge) countBadge.textContent = `x${item.count}`;
-                        btn.disabled = !canAfford;
+                        btn.disabled = !bulkInfo.count;
                         if (canAfford) {
                             btn.className = "px-3 py-1.5 rounded-xl text-xs font-bold transition flex-shrink-0 bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20 cursor-pointer";
                         } else {
@@ -1756,8 +1881,9 @@
             const item = gameState.tokenShop[key];
             if (!item || item.count >= item.max) return;
             const currentPrice = getTokenUpgradePrice(item);
-            if (gameState.rebirthTokens < currentPrice) return;
-            gameState.rebirthTokens -= currentPrice;
+            const tokensBefore = Math.max(0, Math.floor(Number(gameState.rebirthTokens) || 0));
+            if (!Number.isFinite(currentPrice) || currentPrice > tokensBefore) return;
+            gameState.rebirthTokens = Math.max(0, tokensBefore - Math.floor(currentPrice));
             item.count++;
             invalidateStatsCache();
             playSound('upgrade');
@@ -1779,8 +1905,10 @@
                     btn.className = 'min-w-[82px] px-2 py-2 rounded-xl text-xs font-bold bg-emerald-950 text-emerald-400 border border-emerald-800';
                 } else {
                     const currentPrice = getTokenUpgradePrice(item);
-                    btn.innerHTML=`<span class="block text-[9px] uppercase opacity-70">COST</span><span class="block text-sm font-black">${formatNumber(currentPrice)}</span><span class="block text-[9px] uppercase opacity-70">TOKENS</span>`;
-                    if (gameState.rebirthTokens >= currentPrice) {
+                    const bulkInfo = getTokenBulkInfo(item);
+                    const modeLabel = bulkBuyMode === 'max' ? 'MAX' : `${bulkBuyMode}X`;
+                    btn.innerHTML=`<span class="block text-[9px] uppercase opacity-70">${modeLabel}</span><span class="block text-sm font-black">${formatNumber(bulkInfo.totalCost || currentPrice)}</span><span class="block text-[9px] uppercase opacity-70">TOKENS</span>`;
+                    if (bulkInfo.count > 0) {
                         btn.className = 'min-w-[82px] px-2 py-2 rounded-xl text-xs font-bold bg-purple-600 hover:bg-purple-500 text-white cursor-pointer';
                     } else {
                         btn.className = 'min-w-[82px] px-2 py-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-500 border border-slate-800 cursor-not-allowed';
@@ -1810,6 +1938,9 @@
                 tabs[t].className = "flex-1 py-2 text-center font-arcade text-base tracking-wider font-bold rounded-xl text-slate-400 hover:text-white transition flex items-center justify-center gap-1.5";
             }
             tabs[tab].className = "flex-1 py-2 text-center font-arcade text-base tracking-wider font-bold rounded-xl bg-blue-600 text-white transition flex items-center justify-center gap-1.5 shadow-lg shadow-blue-600/30";
+
+            const bulkLabel = document.getElementById('bulk-buy-label');
+            if (bulkLabel) bulkLabel.textContent = tab === 'bags' ? 'SKINS' : 'BUY';
 
             renderShop();
         }
@@ -1909,7 +2040,7 @@
         function getProfile() {
             try { return JSON.parse(localStorage.getItem(PROFILE_KEY) || 'null'); } catch(e) { return null; }
         }
-        const SESSION_TIMEOUT_MS = 60 * 60 * 1000;
+        const SESSION_TIMEOUT_MS = 10 * 60 * 60 * 1000;
         let sessionActivityTimer = null;
 
         function saveProfile(username, playerId, authToken) {
@@ -2413,16 +2544,18 @@
         }
 
         async function ensureProfile() {
-            expireSessionIfNeeded();
+            const expired = expireSessionIfNeeded();
             updateSettingsUsername();
             const p = getProfile();
             if (!p) {
-                openUsernameModal();
+                openUsernameModal('login');
                 return false;
             }
-            if (p.authToken) {
-                await loadRemoteProgress();
+            if (expired || !p.authToken) {
+                openLoginReconnect(expired ? 'Your login session expired after 10 hours away. Log in again to continue.' : 'Your ID is not connected. Log in with your existing username and password.');
+                return false;
             }
+            await loadRemoteProgress();
             updateSettingsUsername();
             return true;
         }
@@ -2462,9 +2595,18 @@
                 try { _saveGameOriginal(); } catch(e) {}
                 sendFinalOnlineSave();
             } else {
-                // Returning to the game does not instantly resume it.
-                // The player must tap the game/resume button first.
+                // Returning normally keeps the existing login session.
+                // If the player stayed away for 10 hours, expire the session
+                // and immediately show the login screen instead of making
+                // the player open Settings and reconnect manually.
+                const expired = expireSessionIfNeeded();
                 setGamePaused(true, true);
+                updateSettingsUsername();
+                if (expired) {
+                    openLoginReconnect('Your login session expired after 10 hours away. Log in again to continue.');
+                } else {
+                    markSessionActive();
+                }
             }
         });
 
