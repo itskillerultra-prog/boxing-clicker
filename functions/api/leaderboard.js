@@ -23,7 +23,6 @@ export async function onRequest(context) {
   }
   const safeEqual = (a,b) => { if(!a||!b||a.length!==b.length)return false; let x=0; for(let i=0;i<a.length;i++) x |= a.charCodeAt(i)^b.charCodeAt(i); return x===0; };
   const safeState = raw => { try { const x=typeof raw==='string'?JSON.parse(raw):raw; return x&&typeof x==='object'?x:null; } catch(_) { return null; } };
-  const clientIP = request.headers.get('CF-Connecting-IP') || (request.headers.get('X-Forwarded-For')||'').split(',')[0].trim() || 'unknown';
 
   async function ensureSchema() {
     await env.DB.prepare(`CREATE TABLE IF NOT EXISTS leaderboard (username TEXT PRIMARY KEY,cash INTEGER NOT NULL DEFAULT 0,punches INTEGER NOT NULL DEFAULT 0,updated_at INTEGER NOT NULL)`).run();
@@ -38,10 +37,7 @@ export async function onRequest(context) {
       `ALTER TABLE leaderboard ADD COLUMN game_state TEXT`,
       `ALTER TABLE leaderboard ADD COLUMN otp_hash TEXT`,
       `ALTER TABLE leaderboard ADD COLUMN otp_expires INTEGER`,
-      `ALTER TABLE leaderboard ADD COLUMN otp_verified_phone TEXT`,
-      `ALTER TABLE leaderboard ADD COLUMN last_ip TEXT`,
-      `ALTER TABLE leaderboard ADD COLUMN banned INTEGER NOT NULL DEFAULT 0`,
-      `ALTER TABLE leaderboard ADD COLUMN banned_ip INTEGER NOT NULL DEFAULT 0`
+      `ALTER TABLE leaderboard ADD COLUMN otp_verified_phone TEXT`
     ]) { try { await env.DB.prepare(sql).run(); } catch (_) {} }
   }
 
@@ -63,10 +59,18 @@ export async function onRequest(context) {
     const body=await request.json();
     const action=String(body.action||"sync");
 
-    const ipBlocked=await env.DB.prepare(`SELECT username FROM leaderboard WHERE banned_ip=1 AND last_ip=? LIMIT 1`).bind(clientIP).first();
-    if(ipBlocked) return json({success:false,error:"This IP address is banned."},403);
-
     const username=cleanName(body.username);
+    if (action === "check_status") {
+      const token = String(body.authToken || "");
+      if (!token || !validName(username)) return json({success:false,error:"Please log in first."},401);
+      const row = await env.DB.prepare(`SELECT username,banned,banned_ip,last_ip FROM leaderboard WHERE username=? AND auth_token=?`).bind(username,token).first();
+      if (!row) return json({success:false,error:"Session expired. Please log in again."},401);
+      const ipBlocked = Number(row.banned_ip) === 1 || !!(await env.DB.prepare(`SELECT username FROM leaderboard WHERE banned_ip=1 AND last_ip=? LIMIT 1`).bind(clientIP).first());
+      if (Number(row.banned) === 1) return json({success:false,banned:true,bannedIp:ipBlocked,error:"Your account has been banned. You can no longer use this account."},403);
+      if (ipBlocked) return json({success:false,banned:false,bannedIp:true,error:"Your IP address has been banned. You cannot access the game from this network."},403);
+      return json({success:true,banned:false,bannedIp:false});
+    }
+
     if(action === "register" || action === "login") {
       if(!validName(username)) return json({success:false,error:"Username must be 2–16 letters, numbers, spaces, _ or - only."},400);
       const password=String(body.password||""); if(password.length<4) return json({success:false,error:"Password must be at least 4 characters."},400);
@@ -74,15 +78,14 @@ export async function onRequest(context) {
       if(action === "register") {
         if(existing && existing.password_hash) return json({success:false,error:"That username is already taken.",suggestions:suggestions(username)},409);
         const salt=randomB64(16), hash=await hashPassword(password,salt), playerId=existing?.player_id||`p_${crypto.randomUUID()}`, token=randomB64(32);
-        if(existing) await env.DB.prepare(`UPDATE leaderboard SET player_id=?,password_hash=?,password_salt=?,auth_token=?,last_ip=?,updated_at=? WHERE username=?`).bind(playerId,hash,salt,token,clientIP,Date.now(),username).run();
-        else await env.DB.prepare(`INSERT INTO leaderboard(username,cash,punches,rebirths,updated_at,player_id,password_hash,password_salt,auth_token,game_state,last_ip,banned,banned_ip) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(username,0,0,0,Date.now(),playerId,hash,salt,token,null,clientIP,0,0).run();
+        if(existing) await env.DB.prepare(`UPDATE leaderboard SET player_id=?,password_hash=?,password_salt=?,auth_token=?,updated_at=? WHERE username=?`).bind(playerId,hash,salt,token,Date.now(),username).run();
+        else await env.DB.prepare(`INSERT INTO leaderboard(username,cash,punches,rebirths,updated_at,player_id,password_hash,password_salt,auth_token,game_state) VALUES(?,?,?,?,?,?,?,?,?,?)`).bind(username,0,0,0,Date.now(),playerId,hash,salt,token,null).run();
         return json({success:true,username,playerId,authToken:token,gameState:null});
       }
       if(!existing||!existing.password_hash) return json({success:false,error:"Account not found. Create this username first."},401);
-      if(Number(existing.banned)===1) return json({success:false,error:"This player account is banned."},403);
       const hash=await hashPassword(password,existing.password_salt); if(!safeEqual(hash,existing.password_hash)) return json({success:false,error:"Wrong password."},401);
       const token=randomB64(32),playerId=existing.player_id||`p_${crypto.randomUUID()}`;
-      await env.DB.prepare(`UPDATE leaderboard SET player_id=?,auth_token=?,last_ip=?,updated_at=? WHERE username=?`).bind(playerId,token,clientIP,Date.now(),username).run();
+      await env.DB.prepare(`UPDATE leaderboard SET player_id=?,auth_token=?,updated_at=? WHERE username=?`).bind(playerId,token,Date.now(),username).run();
       return json({success:true,username,playerId,authToken:token,gameState:safeState(existing.game_state)});
     }
 
@@ -129,7 +132,7 @@ export async function onRequest(context) {
 
       const row=await env.DB.prepare(`SELECT username,cash,punches,rebirths,game_state,banned FROM leaderboard WHERE username=? AND auth_token=?`).bind(loadName,token).first();
       if(!row) return json({success:false,error:"Session expired. Please log in again."},401);
-      if(Number(row.banned)===1) return json({success:false,error:"This player account is banned."},403);
+      if(Number(row.banned)===1) return json({success:false,banned:true,error:"Your account has been banned. You can no longer use this account."},403);
 
       return json({
         success:true,
@@ -143,8 +146,7 @@ export async function onRequest(context) {
 
     if(action === "sync") {
       const token=String(body.authToken||""); if(!token) return json({success:false,error:"Login required."},401);
-      const row=await env.DB.prepare(`SELECT username,game_state,banned FROM leaderboard WHERE username=? AND auth_token=?`).bind(username,token).first(); if(!row) return json({success:false,error:"Session expired. Log in again."},401);
-      if(Number(row.banned)===1) return json({success:false,error:"This player account is banned."},403);
+      const row=await env.DB.prepare(`SELECT username,game_state,banned FROM leaderboard WHERE username=? AND auth_token=?`).bind(username,token).first(); if(!row) return json({success:false,error:"Session expired. Log in again."},401); if(Number(row.banned)===1) return json({success:false,banned:true,error:"Your account has been banned. You can no longer use this account."},403);
       const cash=Math.max(0,Math.floor(Number(body.cash)||0)), punches=Math.max(0,Math.floor(Number(body.punches)||0)), rebirths=Math.max(0,Math.floor(Number(body.rebirths)||0));
       const incoming=body.gameState&&typeof body.gameState==='object'?body.gameState:null;
       const incomingSavedAt=Number(incoming?.savedAt)||0;
@@ -154,7 +156,7 @@ export async function onRequest(context) {
       // This is especially important after Reset Progress or a bulk Rebirth.
       if(incomingSavedAt && storedSavedAt && incomingSavedAt < storedSavedAt) return json({success:true,ignored:true,reason:"stale_save"});
       const state=incoming?JSON.stringify(incoming):null;
-      await env.DB.prepare(`UPDATE leaderboard SET cash=?,punches=?,rebirths=?,game_state=?,last_ip=?,updated_at=? WHERE username=? AND auth_token=?`).bind(cash,punches,rebirths,state,clientIP,Date.now(),username,token).run();
+      await env.DB.prepare(`UPDATE leaderboard SET cash=?,punches=?,rebirths=?,game_state=?,updated_at=? WHERE username=? AND auth_token=?`).bind(cash,punches,rebirths,state,Date.now(),username,token).run();
       return json({success:true});
     }
     return json({success:false,error:"Unknown action."},400);
