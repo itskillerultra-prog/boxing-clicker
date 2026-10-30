@@ -184,6 +184,12 @@
 
     <div id="panelContent" style="display:none;">
 
+        <div style="margin-bottom:16px;">
+            <label>PLAYER USERNAME</label>
+            <input id="targetUsernameInput" type="text" placeholder="Enter player username" autocomplete="off">
+            <button id="loadBtn" style="margin-top:10px; width:100%;">LOAD PLAYER</button>
+        </div>
+
         <div class="stats">
             <div class="stat">
                 <div class="stat-title">CASH</div>
@@ -252,6 +258,8 @@ const panelContent = document.getElementById("panelContent");
 const cashDisplay = document.getElementById("cashDisplay");
 const punchesDisplay = document.getElementById("punchesDisplay");
 const rebirthsDisplay = document.getElementById("rebirthsDisplay");
+const targetUsernameInput = document.getElementById("targetUsernameInput");
+const loadBtn = document.getElementById("loadBtn");
 
 const cashInput = document.getElementById("cashInput");
 const punchesInput = document.getElementById("punchesInput");
@@ -323,9 +331,15 @@ function displayStats(data) {
 
 async function loadOwnerStats() {
 
+    const targetUsername = targetUsernameInput.value.trim();
+    if (!targetUsername) {
+        setStatus("Enter a player username first.");
+        return;
+    }
+
     try {
 
-        const data = await ownerRequest("get_stats");
+        const data = await ownerRequest("get_stats", { targetUsername });
 
         if (!data.success) {
             setStatus(data.error || "Owner access denied.");
@@ -355,8 +369,12 @@ async function setStats() {
 
     try {
 
+        const targetUsername = targetUsernameInput.value.trim();
+        if (!targetUsername) { setStatus("Enter a player username first."); return; }
+
         const data = await ownerRequest("set_stats", {
 
+            targetUsername,
             cash: Number(cashInput.value) || 0,
             punches: Number(punchesInput.value) || 0,
             rebirths: Number(rebirthsInput.value) || 0
@@ -395,8 +413,12 @@ async function addStats() {
 
     try {
 
+        const targetUsername = targetUsernameInput.value.trim();
+        if (!targetUsername) { setStatus("Enter a player username first."); return; }
+
         const data = await ownerRequest("add_stats", {
 
+            targetUsername,
             cash: Number(cashInput.value) || 0,
             punches: Number(punchesInput.value) || 0,
             rebirths: Number(rebirthsInput.value) || 0
@@ -426,6 +448,7 @@ async function addStats() {
 }
 
 
+loadBtn.addEventListener("click", loadOwnerStats);
 setBtn.addEventListener("click", setStats);
 addBtn.addEventListener("click", addStats);
 

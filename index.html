@@ -237,6 +237,22 @@
                 </div>
             </div>
 
+            <!-- BULK BUY CONTROLS -->
+            <div id="bulk-buy-bar" class="px-3 pb-2">
+                <div class="rounded-xl bg-slate-950 border border-slate-800 p-2">
+                    <div class="flex items-center justify-between gap-2 mb-1.5">
+                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-wider">BUY AMOUNT</span>
+                        <span id="bulk-buy-hint" class="text-[9px] text-slate-600">Upgrades & tokens</span>
+                    </div>
+                    <div class="grid grid-cols-4 gap-1.5" id="bulk-buy-buttons">
+                        <button type="button" data-bulk="1" class="bulk-buy-btn px-2 py-1.5 rounded-lg text-[10px] font-black bg-blue-600 text-white">1X</button>
+                        <button type="button" data-bulk="10" class="bulk-buy-btn px-2 py-1.5 rounded-lg text-[10px] font-black bg-slate-800 text-slate-300 border border-slate-700">10X</button>
+                        <button type="button" data-bulk="100" class="bulk-buy-btn px-2 py-1.5 rounded-lg text-[10px] font-black bg-slate-800 text-slate-300 border border-slate-700">100X</button>
+                        <button type="button" data-bulk="max" class="bulk-buy-btn px-2 py-1.5 rounded-lg text-[10px] font-black bg-slate-800 text-slate-300 border border-slate-700">MAX</button>
+                    </div>
+                </div>
+            </div>
+
             <!-- DYNAMIC SHOP ITEMS -->
             <div class="flex-1 overflow-y-auto p-3 space-y-2.5 custom-scrollbar" id="shop-container">
             </div>
@@ -1600,7 +1616,28 @@
         }
 
         // SHOP UI GENERATOR
+        let bulkBuyAmount = 1;
+        const bulkBuyBar = document.getElementById('bulk-buy-bar');
+        const bulkBuyButtons = document.querySelectorAll('.bulk-buy-btn');
+        bulkBuyButtons.forEach(btn => btn.addEventListener('click', () => {
+            bulkBuyAmount = btn.dataset.bulk === 'max' ? 'max' : Number(btn.dataset.bulk);
+            bulkBuyButtons.forEach(b => {
+                const active = b === btn;
+                b.className = active
+                    ? 'bulk-buy-btn px-2 py-1.5 rounded-lg text-[10px] font-black bg-blue-600 text-white'
+                    : 'bulk-buy-btn px-2 py-1.5 rounded-lg text-[10px] font-black bg-slate-800 text-slate-300 border border-slate-700';
+            });
+        }));
+
+        function updateBulkBuyVisibility() {
+            const show = currentTab !== 'bags';
+            if (bulkBuyBar) bulkBuyBar.classList.toggle('hidden', !show);
+            const hint = document.getElementById('bulk-buy-hint');
+            if (hint) hint.textContent = currentTab === 'tokens' ? 'Token upgrades' : 'Power / Auto / Boost';
+        }
+
         function renderShop() {
+            updateBulkBuyVisibility();
             shopContainer.innerHTML = '';
 
             if (currentTab === 'power' || currentTab === 'auto' || currentTab === 'boost') {
@@ -1636,7 +1673,7 @@
                         </button>
                     `;
 
-                    card.querySelector(`#buy-btn-${key}`).addEventListener('click', () => buyUpgrade(key));
+                    card.querySelector(`#buy-btn-${key}`).addEventListener('click', () => buyUpgrade(key, bulkBuyAmount));
                     shopContainer.appendChild(card);
                 }
             } else if (currentTab === 'tokens') {
@@ -1646,7 +1683,7 @@
                     card.id = `token-card-${key}`;
                     card.className = 'p-3 rounded-xl border flex items-center justify-between transition bg-slate-900/80 border-slate-800';
                     card.innerHTML = `<div class="flex items-center gap-3 min-w-0"><div class="w-11 h-11 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-center text-purple-400 text-lg flex-shrink-0"><i class="fas ${item.icon}"></i></div><div class="min-w-0"><h4 class="font-bold text-sm text-slate-100">${item.name} <span id="token-count-${key}" class="text-[10px] bg-purple-950 text-purple-300 border border-purple-800/60 px-1.5 py-0.5 rounded-md">x${item.count}/${item.max}</span></h4><p class="text-xs text-slate-400">${item.desc}</p></div></div><button id="token-btn-${key}" class="min-w-[82px] px-2 py-2 rounded-xl text-xs font-bold border border-purple-800/60 bg-purple-950/70 text-purple-200"></button>`;
-                    card.querySelector(`#token-btn-${key}`).addEventListener('click', () => buyTokenUpgrade(key));
+                    card.querySelector(`#token-btn-${key}`).addEventListener('click', () => buyTokenUpgrade(key, bulkBuyAmount));
                     shopContainer.appendChild(card);
                 }
                 updateTokenShopStates();
@@ -1740,19 +1777,39 @@
             }
         }
 
-        function buyUpgrade(key) {
-            const item = gameState.upgrades[key];
-            const price = getUpgradePrice(item);
+        function getBulkCount(value, maxAvailable) {
+            if (value === 'max') return Math.max(0, Math.floor(maxAvailable));
+            return Math.max(1, Math.floor(Number(value) || 1));
+        }
 
-            if (gameState.cash >= price) {
-                gameState.cash -= price;
-                item.count++;
-                invalidateStatsCache();
-                playSound('upgrade');
-                calculateStats(true);
-                updateShopItemStates();
-                saveGame();
+        function getAffordableUpgradeCount(item, requested) {
+            let count = 0;
+            const target = requested === 'max' ? 800 : getBulkCount(requested, 800);
+            while (count < target) {
+                const price = getUpgradePrice({ ...item, count: item.count + count });
+                if (gameState.cash < price) break;
+                count++;
             }
+            return count;
+        }
+
+        function buyUpgrade(key, amount = 1) {
+            const item = gameState.upgrades[key];
+            if (!item) return;
+            const count = getAffordableUpgradeCount(item, amount);
+            if (count <= 0) return;
+            let spent = 0;
+            for (let i = 0; i < count; i++) {
+                const price = getUpgradePrice({ ...item, count: item.count + i });
+                spent += price;
+            }
+            gameState.cash -= spent;
+            item.count += count;
+            invalidateStatsCache();
+            playSound('upgrade');
+            calculateStats(true);
+            updateShopItemStates();
+            saveGame();
         }
 
         function selectOrBuyBag(key) {
@@ -1783,13 +1840,29 @@
             return Number.isFinite(price) ? price : Number.MAX_SAFE_INTEGER;
         }
 
-        function buyTokenUpgrade(key) {
+        function getAffordableTokenUpgradeCount(item, requested) {
+            let count = 0;
+            const remaining = Math.max(0, item.max - item.count);
+            const target = requested === 'max' ? remaining : Math.min(remaining, getBulkCount(requested, remaining));
+            while (count < target) {
+                const price = getTokenUpgradePrice({ ...item, count: item.count + count });
+                if (gameState.rebirthTokens < price) break;
+                count++;
+            }
+            return count;
+        }
+
+        function buyTokenUpgrade(key, amount = 1) {
             const item = gameState.tokenShop[key];
             if (!item || item.count >= item.max) return;
-            const currentPrice = getTokenUpgradePrice(item);
-            if (gameState.rebirthTokens < currentPrice) return;
-            gameState.rebirthTokens -= currentPrice;
-            item.count++;
+            const count = getAffordableTokenUpgradeCount(item, amount);
+            if (count <= 0) return;
+            let spent = 0;
+            for (let i = 0; i < count; i++) {
+                spent += getTokenUpgradePrice({ ...item, count: item.count + i });
+            }
+            gameState.rebirthTokens -= spent;
+            item.count += count;
             invalidateStatsCache();
             playSound('upgrade');
             calculateStats();
