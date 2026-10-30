@@ -60,31 +60,6 @@ export async function onRequest(context) {
         // --------------------------------
         // GET A PLAYER
         // --------------------------------
-        if (action === "get_stats") {
-            // Backward-compatible alias for older owner.html.
-            // The owner account stays in body.username; the selected player is targetUsername.
-            const targetUsername = String(body.targetUsername || body.playerUsername || "").trim();
-            if (!targetUsername) {
-                return json({ success: false, error: "Enter a player username." }, 400);
-            }
-            const player = await env.DB.prepare(
-                `SELECT username, cash, punches, rebirths, game_state
-                 FROM leaderboard WHERE username=?`
-            ).bind(targetUsername).first();
-            if (!player) return json({ success: false, error: "Player not found." }, 404);
-            let gameState = {};
-            try { gameState = player.game_state ? JSON.parse(player.game_state) : {}; } catch (e) { gameState = {}; }
-            return json({
-                success: true,
-                username: player.username,
-                cash: Number(player.cash) || 0,
-                punches: Number(player.punches) || 0,
-                rebirths: Number(player.rebirths) || 0,
-                rebirthTokens: Number(gameState.rebirthTokens) || 0,
-                gameState
-            });
-        }
-
         if (action === "get_player") {
             const targetUsername = String(body.targetUsername || "").trim();
 
@@ -96,8 +71,7 @@ export async function onRequest(context) {
             }
 
             const player = await env.DB.prepare(
-                `SELECT username, cash, punches, rebirths, rebirths,
-                        rebirths, game_state
+                `SELECT username, cash, punches, rebirths, game_state
                  FROM leaderboard
                  WHERE username=?`
             ).bind(targetUsername).first();
@@ -220,6 +194,37 @@ export async function onRequest(context) {
                 rebirths,
                 rebirthTokens
             });
+        }
+
+        // --------------------------------
+        // BAN / UNBAN PLAYER + IP
+        // --------------------------------
+        if (action === "ban_player" || action === "unban_player" || action === "ban_ip" || action === "unban_ip") {
+            const targetUsername = String(body.targetUsername || "").trim();
+            if (!targetUsername) return json({ success: false, error: "Enter a player username." }, 400);
+            if (targetUsername === OWNER_USERNAME) return json({ success: false, error: "You cannot ban the owner account." }, 400);
+
+            const player = await env.DB.prepare(
+                `SELECT username, last_ip FROM leaderboard WHERE username=?`
+            ).bind(targetUsername).first();
+            if (!player) return json({ success: false, error: "Player not found." }, 404);
+
+            if (action === "ban_player" || action === "unban_player") {
+                const banned = action === "ban_player" ? 1 : 0;
+                await env.DB.prepare(
+                    `UPDATE leaderboard SET banned=?, updated_at=? WHERE username=?`
+                ).bind(banned, Date.now(), targetUsername).run();
+                return json({ success: true, username: targetUsername, banned: !!banned, message: banned ? "Player account banned." : "Player account unbanned." });
+            }
+
+            if (!player.last_ip || player.last_ip === "unknown") {
+                return json({ success: false, error: "This player does not have a recorded IP yet." }, 400);
+            }
+            const bannedIp = action === "ban_ip" ? 1 : 0;
+            await env.DB.prepare(
+                `UPDATE leaderboard SET banned_ip=?, updated_at=? WHERE last_ip=?`
+            ).bind(bannedIp, Date.now(), player.last_ip).run();
+            return json({ success: true, username: targetUsername, bannedIp: !!bannedIp, message: bannedIp ? "Player IP banned." : "Player IP unbanned." });
         }
 
         // --------------------------------
