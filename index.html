@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Boxing Punching Bag Clicker</title>
+    <meta name="app-version" content="20261030-02">
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome Icons -->
@@ -19,6 +20,10 @@
             -webkit-user-select: none;
             overflow: hidden;
             touch-action: manipulation;
+        }
+
+        @media print {
+            html, body { display: none !important; }
         }
 
         .font-arcade {
@@ -67,11 +72,37 @@
             width: min(340px, calc(100vw - 28px));
         }
         #optimization-tip.hidden { display: none; }
+        /* Responsive settings/modal layout: keep the game fixed, make long settings scrollable on every device. */
+        #settings-modal > div {
+            width: min(560px, calc(100vw - 24px));
+            max-height: calc(100vh - 24px);
+            max-height: calc(100dvh - 24px);
+            overflow-y: auto;
+            overflow-x: hidden;
+            overscroll-behavior: contain;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-gutter: stable;
+        }
+        #settings-modal > div::-webkit-scrollbar { width: 7px; }
+        #settings-modal > div::-webkit-scrollbar-thumb { background: rgba(37,99,235,.75); border-radius: 999px; }
+        #settings-modal > div > div:first-child {
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            background: #0f172a;
+        }
         @media (max-width: 700px) {
             #shop-container { min-height: 0; }
-            #settings-modal > div, #username-modal > div, #leaderboard-modal > div { max-height: 92vh; overflow-y: auto; }
+            #settings-modal > div, #username-modal > div, #leaderboard-modal > div { max-height: calc(100dvh - 16px); overflow-y: auto; }
+            #settings-modal > div { width: min(560px, calc(100vw - 12px)); padding: 18px; }
             #username-modal > div { width: min(100%, 430px); }
             #shop-container { overscroll-behavior: contain; }
+        }
+        @media (max-width: 420px) {
+            #settings-modal { padding: 6px; }
+            #settings-modal > div { padding: 14px; border-radius: 16px; }
+            #settings-modal .text-sm { font-size: .82rem; line-height: 1.25rem; }
+            #settings-modal .text-xs { font-size: .68rem; line-height: 1rem; }
         }
         @media (min-width: 701px) and (max-width: 1100px) {
             #game-app aside { width: 360px !important; }
@@ -176,17 +207,6 @@
                 <button id="tab-bags" class="flex-1 min-w-[82px] py-2 text-center font-arcade text-sm tracking-wider font-bold rounded-xl text-slate-400 hover:text-white transition flex items-center justify-center gap-1.5">
                     <i class="fas fa-shield-halved"></i> SKINS
                 </button>
-            </div>
-
-            <!-- BULK PURCHASE MODE -->
-            <div id="bulk-buy-bar" class="px-3 pt-2">
-                <div class="rounded-xl bg-slate-950 border border-slate-800 p-2 flex items-center gap-1.5">
-                    <span id="bulk-buy-label" class="text-[9px] font-black uppercase tracking-wider text-slate-500 mr-1">BUY</span>
-                    <button type="button" id="bulk-1" class="bulk-buy-mode flex-1 min-w-0 px-2 py-1.5 rounded-lg text-[10px] font-black bg-blue-600 text-white">1X</button>
-                    <button type="button" id="bulk-10" class="bulk-buy-mode flex-1 min-w-0 px-2 py-1.5 rounded-lg text-[10px] font-black bg-slate-800 text-slate-400">10X</button>
-                    <button type="button" id="bulk-100" class="bulk-buy-mode flex-1 min-w-0 px-2 py-1.5 rounded-lg text-[10px] font-black bg-slate-800 text-slate-400">100X</button>
-                    <button type="button" id="bulk-max" class="bulk-buy-mode flex-1 min-w-0 px-2 py-1.5 rounded-lg text-[10px] font-black bg-slate-800 text-slate-400">MAX</button>
-                </div>
             </div>
 
             <!-- INFINITE REBIRTH PANEL -->
@@ -1579,109 +1599,6 @@
             return Math.floor(item.basePrice * Math.pow(item.growth * UPGRADE_DIFFICULTY_GROWTH, item.count));
         }
 
-        // ===== COOKIE-CLICKER STYLE BULK BUY MODE =====
-        // One global mode controls Power / Auto / Boost / Token purchases.
-        // Skins stay one-at-a-time because each skin is a unique item.
-        let bulkBuyMode = 1;
-
-        function setBulkBuyMode(mode) {
-            bulkBuyMode = mode === 'max' ? 'max' : Math.max(1, Number(mode) || 1);
-            document.querySelectorAll('.bulk-buy-mode').forEach(btn => {
-                const active = btn.id === `bulk-${bulkBuyMode === 'max' ? 'max' : bulkBuyMode}`;
-                btn.className = `bulk-buy-mode flex-1 min-w-0 px-2 py-1.5 rounded-lg text-[10px] font-black ${active ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400'}`;
-            });
-            updateShopItemStates();
-        }
-
-        document.getElementById('bulk-1').addEventListener('click', () => setBulkBuyMode(1));
-        document.getElementById('bulk-10').addEventListener('click', () => setBulkBuyMode(10));
-        document.getElementById('bulk-100').addEventListener('click', () => setBulkBuyMode(100));
-        document.getElementById('bulk-max').addEventListener('click', () => setBulkBuyMode('max'));
-
-        function getUpgradeBulkInfo(item, requestedMode = bulkBuyMode) {
-            const cash = Math.max(0, Number(gameState.cash) || 0);
-            if (!item || cash <= 0) return { count: 0, totalCost: 0 };
-
-            const growth = Math.max(1.000001, Number(item.growth || 1) * UPGRADE_DIFFICULTY_GROWTH);
-            const base = Math.max(1, Number(item.basePrice) || 1);
-            const start = Math.max(0, Math.floor(Number(item.count) || 0));
-            const priceAt = n => Math.floor(base * Math.pow(growth, start + n));
-
-            const costFor = n => {
-                n = Math.max(0, Math.floor(n));
-                if (!n) return 0;
-                const r = growth;
-                const first = Math.max(1, priceAt(0));
-                if (!Number.isFinite(r) || r <= 1.0000001) return first * n;
-                const total = first * ((Math.pow(r, n) - 1) / (r - 1));
-                return Number.isFinite(total) ? total : Number.MAX_VALUE;
-            };
-
-            let maxCount;
-            if (requestedMode === 'max') {
-                const first = Math.max(1, priceAt(0));
-                if (cash < first) return { count: 0, totalCost: 0 };
-                const r = growth;
-                const estimate = Math.floor(Math.log1p((cash * (r - 1)) / first) / Math.log(r));
-                maxCount = Math.max(1, Math.min(1000000, Number.isFinite(estimate) ? estimate + 2 : 1000000));
-
-                while (maxCount > 0 && costFor(maxCount) > cash) maxCount--;
-                while (maxCount < 1000000 && costFor(maxCount + 1) <= cash) maxCount++;
-            } else {
-                maxCount = Math.max(0, Math.floor(Number(requestedMode) || 1));
-                while (maxCount > 0 && costFor(maxCount) > cash) maxCount--;
-            }
-
-            return { count: maxCount, totalCost: costFor(maxCount) };
-        }
-
-        function buyUpgradeBulk(key, requestedMode = bulkBuyMode) {
-            const item = gameState.upgrades[key];
-            if (!item) return;
-            const info = getUpgradeBulkInfo(item, requestedMode);
-            if (!info.count || info.totalCost > gameState.cash) return;
-
-            gameState.cash -= info.totalCost;
-            item.count += info.count;
-            invalidateStatsCache();
-            playSound('upgrade');
-            calculateStats(true);
-            updateShopItemStates();
-            saveGame();
-        }
-
-        function getTokenBulkInfo(item, requestedMode = bulkBuyMode) {
-            if (!item || item.count >= item.max) return { count: 0, totalCost: 0 };
-            let tokens = Math.max(0, Math.floor(Number(gameState.rebirthTokens) || 0));
-            const maxAvailable = Math.max(0, item.max - item.count);
-            let count = requestedMode === 'max' ? maxAvailable : Math.min(maxAvailable, Math.max(1, Math.floor(Number(requestedMode) || 1)));
-            const growth = item.tokenBoost ? 1.055 : 1.18;
-            const base = Math.max(1, Number(item.basePrice || item.price || 1));
-            let totalCost = 0;
-            let bought = 0;
-            while (bought < count) {
-                const price = Math.ceil(base * Math.pow(growth, item.count + bought));
-                if (!Number.isFinite(price) || price > tokens - totalCost) break;
-                totalCost += price;
-                bought++;
-            }
-            return { count: bought, totalCost };
-        }
-
-        function buyTokenUpgradeBulk(key, requestedMode = bulkBuyMode) {
-            const item = gameState.tokenShop[key];
-            const info = getTokenBulkInfo(item, requestedMode);
-            if (!info.count) return;
-            gameState.rebirthTokens -= info.totalCost;
-            item.count += info.count;
-            invalidateStatsCache();
-            playSound('upgrade');
-            calculateStats(true);
-            renderShop();
-            saveGame();
-            updateRebirthUI();
-        }
-
         // SHOP UI GENERATOR
         function renderShop() {
             shopContainer.innerHTML = '';
@@ -1719,7 +1636,7 @@
                         </button>
                     `;
 
-                    card.querySelector(`#buy-btn-${key}`).addEventListener('click', () => buyUpgradeBulk(key));
+                    card.querySelector(`#buy-btn-${key}`).addEventListener('click', () => buyUpgrade(key));
                     shopContainer.appendChild(card);
                 }
             } else if (currentTab === 'tokens') {
@@ -1729,7 +1646,7 @@
                     card.id = `token-card-${key}`;
                     card.className = 'p-3 rounded-xl border flex items-center justify-between transition bg-slate-900/80 border-slate-800';
                     card.innerHTML = `<div class="flex items-center gap-3 min-w-0"><div class="w-11 h-11 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-center text-purple-400 text-lg flex-shrink-0"><i class="fas ${item.icon}"></i></div><div class="min-w-0"><h4 class="font-bold text-sm text-slate-100">${item.name} <span id="token-count-${key}" class="text-[10px] bg-purple-950 text-purple-300 border border-purple-800/60 px-1.5 py-0.5 rounded-md">x${item.count}/${item.max}</span></h4><p class="text-xs text-slate-400">${item.desc}</p></div></div><button id="token-btn-${key}" class="min-w-[82px] px-2 py-2 rounded-xl text-xs font-bold border border-purple-800/60 bg-purple-950/70 text-purple-200"></button>`;
-                    card.querySelector(`#token-btn-${key}`).addEventListener('click', () => buyTokenUpgradeBulk(key));
+                    card.querySelector(`#token-btn-${key}`).addEventListener('click', () => buyTokenUpgrade(key));
                     shopContainer.appendChild(card);
                 }
                 updateTokenShopStates();
@@ -1782,12 +1699,10 @@
                         // Refresh both the price text and the enabled state immediately.
                         // This fixes the old bug where the button kept showing the previous price
                         // until the shop was manually refreshed.
-                        const bulkInfo = getUpgradeBulkInfo(item);
-                        const modeLabel = bulkBuyMode === 'max' ? 'MAX' : `${bulkBuyMode}X`;
-                        btn.innerHTML = `<span class="block text-[9px] uppercase opacity-70">${modeLabel}</span><span class="block text-sm font-black">$${formatNumber(bulkInfo.totalCost || price)}</span>`;
+                        btn.textContent = `$${formatNumber(price)}`;
                         const countBadge = document.querySelector(`#upgrade-card-${key} span`);
                         if (countBadge) countBadge.textContent = `x${item.count}`;
-                        btn.disabled = !bulkInfo.count;
+                        btn.disabled = !canAfford;
                         if (canAfford) {
                             btn.className = "px-3 py-1.5 rounded-xl text-xs font-bold transition flex-shrink-0 bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20 cursor-pointer";
                         } else {
@@ -1895,10 +1810,8 @@
                     btn.className = 'min-w-[82px] px-2 py-2 rounded-xl text-xs font-bold bg-emerald-950 text-emerald-400 border border-emerald-800';
                 } else {
                     const currentPrice = getTokenUpgradePrice(item);
-                    const bulkInfo = getTokenBulkInfo(item);
-                    const modeLabel = bulkBuyMode === 'max' ? 'MAX' : `${bulkBuyMode}X`;
-                    btn.innerHTML=`<span class="block text-[9px] uppercase opacity-70">${modeLabel}</span><span class="block text-sm font-black">${formatNumber(bulkInfo.totalCost || currentPrice)}</span><span class="block text-[9px] uppercase opacity-70">TOKENS</span>`;
-                    if (bulkInfo.count > 0) {
+                    btn.innerHTML=`<span class="block text-[9px] uppercase opacity-70">COST</span><span class="block text-sm font-black">${formatNumber(currentPrice)}</span><span class="block text-[9px] uppercase opacity-70">TOKENS</span>`;
+                    if (gameState.rebirthTokens >= currentPrice) {
                         btn.className = 'min-w-[82px] px-2 py-2 rounded-xl text-xs font-bold bg-purple-600 hover:bg-purple-500 text-white cursor-pointer';
                     } else {
                         btn.className = 'min-w-[82px] px-2 py-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-500 border border-slate-800 cursor-not-allowed';
@@ -1928,9 +1841,6 @@
                 tabs[t].className = "flex-1 py-2 text-center font-arcade text-base tracking-wider font-bold rounded-xl text-slate-400 hover:text-white transition flex items-center justify-center gap-1.5";
             }
             tabs[tab].className = "flex-1 py-2 text-center font-arcade text-base tracking-wider font-bold rounded-xl bg-blue-600 text-white transition flex items-center justify-center gap-1.5 shadow-lg shadow-blue-600/30";
-
-            const bulkLabel = document.getElementById('bulk-buy-label');
-            if (bulkLabel) bulkLabel.textContent = tab === 'bags' ? 'SKINS' : 'BUY';
 
             renderShop();
         }
@@ -2030,7 +1940,7 @@
         function getProfile() {
             try { return JSON.parse(localStorage.getItem(PROFILE_KEY) || 'null'); } catch(e) { return null; }
         }
-        const SESSION_TIMEOUT_MS = 10 * 60 * 60 * 1000;
+        const SESSION_TIMEOUT_MS = 60 * 60 * 1000;
         let sessionActivityTimer = null;
 
         function saveProfile(username, playerId, authToken) {
@@ -2455,12 +2365,12 @@
         function scheduleOnlineSync() {
             if (!ONLINE_LEADERBOARD_API) return;
             clearTimeout(onlineSyncTimer);
-            onlineSyncTimer = setTimeout(() => syncOnlineProgress(), 1500);
+            onlineSyncTimer = setTimeout(() => syncOnlineProgress(), 300);
         }
 
         function startOnlineSyncLoop() {
             clearInterval(onlineSyncInterval);
-            onlineSyncInterval = setInterval(() => syncOnlineProgress(), 10000);
+            onlineSyncInterval = setInterval(() => syncOnlineProgress(), 1000);
         }
 
         function sendFinalOnlineSave() {
@@ -2530,22 +2440,20 @@
                 if (modal.classList.contains('hidden')) return;
                 const rows = await fetchWorldwideLeaderboard();
                 if (rows) renderLeaderboard(rows, true);
-            }, 10000);
+            }, 100);
         }
 
         async function ensureProfile() {
-            const expired = expireSessionIfNeeded();
+            expireSessionIfNeeded();
             updateSettingsUsername();
             const p = getProfile();
             if (!p) {
-                openUsernameModal('login');
+                openUsernameModal();
                 return false;
             }
-            if (expired || !p.authToken) {
-                openLoginReconnect(expired ? 'Your login session expired after 10 hours away. Log in again to continue.' : 'Your ID is not connected. Log in with your existing username and password.');
-                return false;
+            if (p.authToken) {
+                await loadRemoteProgress();
             }
-            await loadRemoteProgress();
             updateSettingsUsername();
             return true;
         }
@@ -2572,6 +2480,78 @@
             if (!resetInProgress) scheduleOnlineSync();
         };
 
+        // ===== AUTOMATIC SAVE / FAST UPDATE / SCREENSHOT BEST-EFFORT PROTECTION =====
+        // No Save button is required. Local progress is saved immediately on important state changes,
+        // and remote progress is synced shortly after. Leaving/hiding the page triggers one final save.
+        let autoSaveTimer = null;
+        function autoSaveNow() {
+            try { _saveGameOriginal(); } catch (e) {}
+            try { updateLocalLeaderboard(); } catch (e) {}
+            if (!resetInProgress) scheduleOnlineSync();
+        }
+        function scheduleAutoSave() {
+            clearTimeout(autoSaveTimer);
+            autoSaveTimer = setTimeout(autoSaveNow, 150);
+        }
+
+        // Hook the existing save path without adding/changing any visible settings.
+        const _saveGameWithAutoSave = saveGame;
+        saveGame = function() {
+            _saveGameWithAutoSave();
+            scheduleAutoSave();
+        };
+
+        // Detect a newly deployed index.html quickly and reload with a cache-busting URL.
+        const CURRENT_APP_VERSION = document.querySelector('meta[name="app-version"]')?.content || '';
+        let versionWatchBusy = false;
+        let initialPageTag = '';
+        async function startFastVersionWatcher() {
+            try {
+                const first = await fetch(location.pathname + '?__initial_check=' + Date.now(), {cache:'no-store'});
+                initialPageTag = first.headers.get('etag') || first.headers.get('last-modified') || '';
+            } catch(e) {}
+            setInterval(async () => {
+                if (versionWatchBusy || document.visibilityState !== 'visible') return;
+                versionWatchBusy = true;
+                try {
+                    const r = await fetch(location.pathname + '?__check=' + Date.now(), {cache:'no-store'});
+                    if (r.ok) {
+                        const serverTag = r.headers.get('etag') || r.headers.get('last-modified') || '';
+                        const html = await r.text();
+                        const m = html.match(/<meta[^>]+name=["']app-version["'][^>]+content=["']([^"']+)["']/i);
+                        const serverVersion = m ? m[1] : '';
+                        const changedByTag = !!(initialPageTag && serverTag && serverTag !== initialPageTag);
+                        const changedByVersion = !!(CURRENT_APP_VERSION && serverVersion && serverVersion !== CURRENT_APP_VERSION);
+                        if (changedByTag || changedByVersion) {
+                            try { _saveGameOriginal(); } catch(e) {}
+                            sendFinalOnlineSave();
+                            setTimeout(() => location.replace(location.pathname + '?__game_update=' + encodeURIComponent(serverVersion || Date.now())), 120);
+                        }
+                    }
+                } catch(e) {} finally { versionWatchBusy = false; }
+            }, 1500);
+        }
+        startFastVersionWatcher();
+
+        // Browsers/websites cannot reliably disable OS-level screenshots while allowing recording.
+        // We can only block common browser actions/shortcuts and printing as a best-effort layer.
+        document.addEventListener('contextmenu', e => e.preventDefault(), {capture:true});
+        document.addEventListener('dragstart', e => e.preventDefault(), {capture:true});
+        document.addEventListener('keydown', e => {
+            const k = String(e.key || '').toLowerCase();
+            if (k === 'printscreen' || (e.ctrlKey && (k === 'p' || k === 's')) ||
+                (e.metaKey && (k === 'p' || k === 's'))) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        }, {capture:true});
+
+        window.addEventListener('beforeunload', () => {
+            if (resetInProgress) return;
+            try { _saveGameOriginal(); } catch(e) {}
+            sendFinalOnlineSave();
+        });
+
         window.addEventListener('pagehide', () => {
             if (resetInProgress) return;
             setGamePaused(true, false);
@@ -2585,18 +2565,9 @@
                 try { _saveGameOriginal(); } catch(e) {}
                 sendFinalOnlineSave();
             } else {
-                // Returning normally keeps the existing login session.
-                // If the player stayed away for 10 hours, expire the session
-                // and immediately show the login screen instead of making
-                // the player open Settings and reconnect manually.
-                const expired = expireSessionIfNeeded();
+                // Returning to the game does not instantly resume it.
+                // The player must tap the game/resume button first.
                 setGamePaused(true, true);
-                updateSettingsUsername();
-                if (expired) {
-                    openLoginReconnect('Your login session expired after 10 hours away. Log in again to continue.');
-                } else {
-                    markSessionActive();
-                }
             }
         });
 
