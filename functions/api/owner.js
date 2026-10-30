@@ -60,6 +60,31 @@ export async function onRequest(context) {
         // --------------------------------
         // GET A PLAYER
         // --------------------------------
+        if (action === "get_stats") {
+            // Backward-compatible alias for older owner.html.
+            // The owner account stays in body.username; the selected player is targetUsername.
+            const targetUsername = String(body.targetUsername || body.playerUsername || "").trim();
+            if (!targetUsername) {
+                return json({ success: false, error: "Enter a player username." }, 400);
+            }
+            const player = await env.DB.prepare(
+                `SELECT username, cash, punches, rebirths, game_state
+                 FROM leaderboard WHERE username=?`
+            ).bind(targetUsername).first();
+            if (!player) return json({ success: false, error: "Player not found." }, 404);
+            let gameState = {};
+            try { gameState = player.game_state ? JSON.parse(player.game_state) : {}; } catch (e) { gameState = {}; }
+            return json({
+                success: true,
+                username: player.username,
+                cash: Number(player.cash) || 0,
+                punches: Number(player.punches) || 0,
+                rebirths: Number(player.rebirths) || 0,
+                rebirthTokens: Number(gameState.rebirthTokens) || 0,
+                gameState
+            });
+        }
+
         if (action === "get_player") {
             const targetUsername = String(body.targetUsername || "").trim();
 
