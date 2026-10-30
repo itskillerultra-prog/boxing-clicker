@@ -4,8 +4,7 @@ export async function onRequest(context) {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type",
-    "Content-Type": "application/json",
-    "Cache-Control": "no-store"
+    "Content-Type": "application/json"
   };
   const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers });
   const cleanName = v => String(v || "").trim().slice(0, 16);
@@ -24,7 +23,7 @@ export async function onRequest(context) {
   }
   const safeEqual = (a,b) => { if(!a||!b||a.length!==b.length)return false; let x=0; for(let i=0;i<a.length;i++) x |= a.charCodeAt(i)^b.charCodeAt(i); return x===0; };
   const safeState = raw => { try { const x=typeof raw==='string'?JSON.parse(raw):raw; return x&&typeof x==='object'?x:null; } catch(_) { return null; } };
-  const clientIP = String(request.headers.get("CF-Connecting-IP") || request.headers.get("X-Forwarded-For") || "unknown").split(",")[0].trim() || "unknown";
+  const clientIP = request.headers.get('CF-Connecting-IP') || (request.headers.get('X-Forwarded-For')||'').split(',')[0].trim() || 'unknown';
 
   async function ensureSchema() {
     await env.DB.prepare(`CREATE TABLE IF NOT EXISTS leaderboard (username TEXT PRIMARY KEY,cash INTEGER NOT NULL DEFAULT 0,punches INTEGER NOT NULL DEFAULT 0,updated_at INTEGER NOT NULL)`).run();
@@ -47,7 +46,7 @@ export async function onRequest(context) {
   }
 
   try {
-    if (request.method === "OPTIONS") return new Response(null, {status:204, headers});
+    if (request.method === "OPTIONS") return new Response(null, {headers});
     await ensureSchema();
 
     if (request.method === "GET") {
@@ -56,23 +55,22 @@ export async function onRequest(context) {
         const row=await env.DB.prepare(`SELECT username FROM leaderboard WHERE username=?`).bind(check).first();
         return json({success:true,exists:!!row,suggestions:row?suggestions(check):[]});
       }
-      const result=await env.DB.prepare(`SELECT username,cash,punches,rebirths FROM leaderboard WHERE COALESCE(banned,0)=0 ORDER BY cash DESC,rebirths DESC,punches DESC,username ASC LIMIT 100`).all();
+      const result=await env.DB.prepare(`SELECT username,cash,punches,rebirths FROM leaderboard ORDER BY cash DESC,rebirths DESC,punches DESC,username ASC LIMIT 100`).all();
       return json({success:true,players:result.results||[]});
     }
 
     if (request.method !== "POST") return json({success:false,error:"Method not allowed."},405);
     const body=await request.json();
     const action=String(body.action||"sync");
+
+    const ipBlocked=await env.DB.prepare(`SELECT username FROM leaderboard WHERE banned_ip=1 AND last_ip=? LIMIT 1`).bind(clientIP).first();
+    if(ipBlocked) return json({success:false,error:"This IP address is banned."},403);
+
     const username=cleanName(body.username);
-
-    const bannedIP = await env.DB.prepare(`SELECT username FROM leaderboard WHERE COALESCE(banned_ip,0)=1 AND last_ip=? LIMIT 1`).bind(clientIP).first();
-    if (bannedIP) return json({success:false,error:"This IP address is banned."},403);
-
     if(action === "register" || action === "login") {
       if(!validName(username)) return json({success:false,error:"Username must be 2–16 letters, numbers, spaces, _ or - only."},400);
       const password=String(body.password||""); if(password.length<4) return json({success:false,error:"Password must be at least 4 characters."},400);
       const existing=await env.DB.prepare(`SELECT * FROM leaderboard WHERE username=?`).bind(username).first();
-      if (existing?.banned) return json({success:false,error:"This account is banned."},403);
       if(action === "register") {
         if(existing && existing.password_hash) return json({success:false,error:"That username is already taken.",suggestions:suggestions(username)},409);
         const salt=randomB64(16), hash=await hashPassword(password,salt), playerId=existing?.player_id||`p_${crypto.randomUUID()}`, token=randomB64(32);
@@ -81,6 +79,7 @@ export async function onRequest(context) {
         return json({success:true,username,playerId,authToken:token,gameState:null});
       }
       if(!existing||!existing.password_hash) return json({success:false,error:"Account not found. Create this username first."},401);
+      if(Number(existing.banned)===1) return json({success:false,error:"This player account is banned."},403);
       const hash=await hashPassword(password,existing.password_salt); if(!safeEqual(hash,existing.password_hash)) return json({success:false,error:"Wrong password."},401);
       const token=randomB64(32),playerId=existing.player_id||`p_${crypto.randomUUID()}`;
       await env.DB.prepare(`UPDATE leaderboard SET player_id=?,auth_token=?,last_ip=?,updated_at=? WHERE username=?`).bind(playerId,token,clientIP,Date.now(),username).run();
@@ -88,11 +87,12 @@ export async function onRequest(context) {
     }
 
     if(action === "change_password") {
-      const token=String(body.authToken||""), currentPassword=String(body.currentPassword||""), newPassword=String(body.newPassword||"");
+      const username=cleanName(body.username), token=String(body.authToken||"");
+      const currentPassword=String(body.currentPassword||""), newPassword=String(body.newPassword||"");
       if(!token) return json({success:false,error:"Please log in first."},401);
       if(newPassword.length<4) return json({success:false,error:"New password must be at least 4 characters."},400);
       const row=await env.DB.prepare(`SELECT * FROM leaderboard WHERE username=? AND auth_token=?`).bind(username,token).first();
-      if(!row || row.banned) return json({success:false,error:row?.banned?"This account is banned.":"Session expired. Please log in again."},401);
+      if(!row || !row.password_hash) return json({success:false,error:"Session expired. Please log in again."},401);
       const currentHash=await hashPassword(currentPassword,row.password_salt);
       if(!safeEqual(currentHash,row.password_hash)) return json({success:false,error:"Current password is incorrect."},401);
       const salt=randomB64(16), hash=await hashPassword(newPassword,salt);
@@ -102,10 +102,11 @@ export async function onRequest(context) {
 
     if(action === "delete_account") {
       const token=String(body.authToken||"");
-      if(!token || !validName(username)) return json({success:false,error:"Please log in first."},401);
-      const owner=await env.DB.prepare(`SELECT username,banned FROM leaderboard WHERE username=? AND auth_token=?`).bind(username,token).first();
-      if(!owner || owner.banned) return json({success:false,error:owner?.banned?"This account is banned.":"Session expired. Please log in again."},401);
-      await env.DB.prepare(`DELETE FROM leaderboard WHERE username=? AND auth_token=?`).bind(username,token).run();
+      const deleteName=cleanName(body.username);
+      if(!token || !validName(deleteName)) return json({success:false,error:"Please log in first."},401);
+      const owner=await env.DB.prepare(`SELECT username FROM leaderboard WHERE username=? AND auth_token=?`).bind(deleteName,token).first();
+      if(!owner) return json({success:false,error:"Session expired. Please log in again."},401);
+      await env.DB.prepare(`DELETE FROM leaderboard WHERE username=? AND auth_token=?`).bind(deleteName,token).run();
       return json({success:true,message:"Profile deleted permanently."});
     }
 
@@ -113,7 +114,7 @@ export async function onRequest(context) {
       const oldUsername=cleanName(body.oldUsername), newUsername=cleanName(body.newUsername), token=String(body.authToken||"");
       if(!validName(newUsername)) return json({success:false,error:"Use 2–16 letters, numbers, spaces, _ or - only."},400);
       const owner=await env.DB.prepare(`SELECT * FROM leaderboard WHERE username=? AND auth_token=?`).bind(oldUsername,token).first();
-      if(!owner || owner.banned) return json({success:false,error:owner?.banned?"This account is banned.":"Session expired. Please log in again."},401);
+      if(!owner) return json({success:false,error:"Session expired. Please log in again."},401);
       if(oldUsername===newUsername) return json({success:true,username:newUsername});
       const taken=await env.DB.prepare(`SELECT username FROM leaderboard WHERE username=?`).bind(newUsername).first();
       if(taken) return json({success:false,error:"That username is already taken.",suggestions:suggestions(newUsername)},409);
@@ -123,20 +124,36 @@ export async function onRequest(context) {
 
     if(action === "load_state") {
       const token=String(body.authToken||"");
-      if(!token || !validName(username)) return json({success:false,error:"Please log in first."},401);
-      const row=await env.DB.prepare(`SELECT username,cash,punches,rebirths,game_state,banned FROM leaderboard WHERE username=? AND auth_token=?`).bind(username,token).first();
+      const loadName=cleanName(body.username);
+      if(!token || !validName(loadName)) return json({success:false,error:"Please log in first."},401);
+
+      const row=await env.DB.prepare(`SELECT username,cash,punches,rebirths,game_state,banned FROM leaderboard WHERE username=? AND auth_token=?`).bind(loadName,token).first();
       if(!row) return json({success:false,error:"Session expired. Please log in again."},401);
-      if(row.banned) return json({success:false,error:"This account is banned."},403);
-      return json({success:true,username:row.username,cash:Number(row.cash)||0,punches:Number(row.punches)||0,rebirths:Number(row.rebirths)||0,gameState:safeState(row.game_state)});
+      if(Number(row.banned)===1) return json({success:false,error:"This player account is banned."},403);
+
+      return json({
+        success:true,
+        username:row.username,
+        cash:Number(row.cash)||0,
+        punches:Number(row.punches)||0,
+        rebirths:Number(row.rebirths)||0,
+        gameState:safeState(row.game_state)
+      });
     }
 
     if(action === "sync") {
       const token=String(body.authToken||""); if(!token) return json({success:false,error:"Login required."},401);
-      const row=await env.DB.prepare(`SELECT username,banned FROM leaderboard WHERE username=? AND auth_token=?`).bind(username,token).first();
-      if(!row) return json({success:false,error:"Session expired. Log in again."},401);
-      if(row.banned) return json({success:false,error:"This account is banned."},403);
+      const row=await env.DB.prepare(`SELECT username,game_state,banned FROM leaderboard WHERE username=? AND auth_token=?`).bind(username,token).first(); if(!row) return json({success:false,error:"Session expired. Log in again."},401);
+      if(Number(row.banned)===1) return json({success:false,error:"This player account is banned."},403);
       const cash=Math.max(0,Math.floor(Number(body.cash)||0)), punches=Math.max(0,Math.floor(Number(body.punches)||0)), rebirths=Math.max(0,Math.floor(Number(body.rebirths)||0));
-      const state=body.gameState&&typeof body.gameState==='object'?JSON.stringify(body.gameState):null;
+      const incoming=body.gameState&&typeof body.gameState==='object'?body.gameState:null;
+      const incomingSavedAt=Number(incoming?.savedAt)||0;
+      let storedSavedAt=0;
+      try { storedSavedAt=Number(JSON.parse(row.game_state||'{}')?.savedAt)||0; } catch(e) {}
+      // Never let an older tab/background request overwrite a newer save.
+      // This is especially important after Reset Progress or a bulk Rebirth.
+      if(incomingSavedAt && storedSavedAt && incomingSavedAt < storedSavedAt) return json({success:true,ignored:true,reason:"stale_save"});
+      const state=incoming?JSON.stringify(incoming):null;
       await env.DB.prepare(`UPDATE leaderboard SET cash=?,punches=?,rebirths=?,game_state=?,last_ip=?,updated_at=? WHERE username=? AND auth_token=?`).bind(cash,punches,rebirths,state,clientIP,Date.now(),username,token).run();
       return json({success:true});
     }
