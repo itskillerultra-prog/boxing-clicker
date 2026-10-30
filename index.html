@@ -368,14 +368,12 @@
 
     <!-- SETTINGS & ABOUT MODAL -->
     <div id="settings-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-6 relative shadow-2xl space-y-6">
-            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-6 relative shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3 pr-10 relative">
                 <h3 class="font-arcade text-3xl text-slate-100 font-bold flex items-center gap-2">
                     <i class="fas fa-gear text-blue-500"></i> SETTINGS
                 </h3>
-                <button id="btn-close-settings" class="text-slate-400 hover:text-white text-xl">
-                    <i class="fas fa-xmark"></i>
-                </button>
+                <button id="btn-close-settings" type="button" aria-label="Close settings" class="absolute right-2 top-2 w-10 h-10 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 text-3xl leading-none font-bold z-10">×</button>
             </div>
 
             <!-- Performance Settings -->
@@ -1625,12 +1623,8 @@
                 const estimate = Math.floor(Math.log1p((cash * (r - 1)) / first) / Math.log(r));
                 maxCount = Math.max(1, Math.min(1000000, Number.isFinite(estimate) ? estimate + 2 : 1000000));
 
-                while (maxCount > 0 && (!Number.isFinite(costFor(maxCount)) || costFor(maxCount) > cash)) maxCount--;
-                while (maxCount < 1000000) {
-                    const nextCost = costFor(maxCount + 1);
-                    if (!Number.isFinite(nextCost) || nextCost > cash) break;
-                    maxCount++;
-                }
+                while (maxCount > 0 && costFor(maxCount) > cash) maxCount--;
+                while (maxCount < 1000000 && costFor(maxCount + 1) <= cash) maxCount++;
             } else {
                 maxCount = Math.max(0, Math.floor(Number(requestedMode) || 1));
                 while (maxCount > 0 && costFor(maxCount) > cash) maxCount--;
@@ -1642,14 +1636,11 @@
         function buyUpgradeBulk(key, requestedMode = bulkBuyMode) {
             const item = gameState.upgrades[key];
             if (!item) return;
-            const cashBefore = Math.max(0, Number(gameState.cash) || 0);
             const info = getUpgradeBulkInfo(item, requestedMode);
+            const cashBefore = Math.max(0, Number(gameState.cash) || 0);
             if (!info.count || !Number.isFinite(info.totalCost) || info.totalCost > cashBefore) return;
 
-            // Hard affordability guard: a purchase can never push cash below zero.
-            const safeCost = Math.min(cashBefore, Math.max(0, Number(info.totalCost) || 0));
-            if (safeCost <= 0) return;
-            gameState.cash = Math.max(0, cashBefore - safeCost);
+            gameState.cash = Math.max(0, cashBefore - info.totalCost);
             item.count += info.count;
             invalidateStatsCache();
             playSound('upgrade');
@@ -1681,7 +1672,7 @@
             const info = getTokenBulkInfo(item, requestedMode);
             const tokensBefore = Math.max(0, Math.floor(Number(gameState.rebirthTokens) || 0));
             if (!info.count || !Number.isFinite(info.totalCost) || info.totalCost > tokensBefore) return;
-            gameState.rebirthTokens = Math.max(0, tokensBefore - Math.floor(info.totalCost));
+            gameState.rebirthTokens = Math.max(0, tokensBefore - info.totalCost);
             item.count += info.count;
             invalidateStatsCache();
             playSound('upgrade');
@@ -1881,9 +1872,8 @@
             const item = gameState.tokenShop[key];
             if (!item || item.count >= item.max) return;
             const currentPrice = getTokenUpgradePrice(item);
-            const tokensBefore = Math.max(0, Math.floor(Number(gameState.rebirthTokens) || 0));
-            if (!Number.isFinite(currentPrice) || currentPrice > tokensBefore) return;
-            gameState.rebirthTokens = Math.max(0, tokensBefore - Math.floor(currentPrice));
+            if (gameState.rebirthTokens < currentPrice) return;
+            gameState.rebirthTokens -= currentPrice;
             item.count++;
             invalidateStatsCache();
             playSound('upgrade');
@@ -2197,7 +2187,7 @@
                 if (typeof data.authToken !== 'string' || !data.authToken.trim()) { error.textContent = 'Account server ne login token nahi diya. /api/leaderboard.js ko check karna hoga; account ko naya sign up mat karo.'; error.classList.remove('hidden'); return; }
                 saveProfile(data.username || name, data.playerId, data.authToken);
                 if (data.gameState) applyRemoteGameState(data.gameState);
-                document.getElementById('username-modal').classList.add('hidden'); updateLocalLeaderboard(); scheduleOnlineSync();
+                document.getElementById('username-modal').classList.add('hidden'); playerBannedOut=false; updateLocalLeaderboard(); scheduleOnlineSync(); startBanChecker();
             } catch(e) { error.textContent = 'Could not connect to the account server.'; error.classList.remove('hidden'); }
             finally { btn.disabled=false; btn.textContent=authScreenMode==='signup'?'CREATE ACCOUNT':'LOGIN'; }
         }
@@ -2645,6 +2635,8 @@
             showOptimizationTip();
             requestAnimationFrame(updateAndRender);
         };
-    </script>
+    
+        if (getProfile()?.username && getProfile()?.authToken) startBanChecker();
+</script>
 </body>
 </html>
